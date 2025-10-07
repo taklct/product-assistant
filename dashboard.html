@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard · AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="scripts/sidebar.js" defer></script>
+    <script src="scripts/sidebar-favorites.js" defer></script>
+    <script src="scripts/sidebar-projects.js" defer></script>
+    <script src="scripts/sidebar-chats.js" defer></script>
+    <script src="scripts/sidebar-init.js" defer></script>
+    <script src="scripts/spa-navigation.js" defer></script>
+    <script src="scripts/topbar.js" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap">
+    <style>
+        ::-webkit-scrollbar { display: none; }
+        body { font-family: 'Inter', sans-serif; }
+        .glass-effect { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.9); }
+        .nav-item { transition: all 0.2s ease-in-out; }
+        .nav-item:hover { transform: translateX(2px); }
+        .control-btn { transition: all 0.2s ease-in-out; }
+        .control-btn:hover { transform: scale(1.02); }
+        .card-hover { transition: all 0.3s ease-in-out; }
+        .card-hover:hover { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); transform: translateY(-1px); }
+        .progress-bar { transition: width 0.3s ease-in-out; }
+        #sidebar { transition: width 0.3s ease, transform 0.3s ease; }
+        @media (min-width: 1024px) {
+            #sidebar { height: 100vh; }
+        }
+        #sidebar.collapsed { width: 80px; }
+        #sidebar.collapsed .sidebar-collapsible { display: none !important; }
+        #sidebar.collapsed .sidebar-icon-only {
+            justify-content: center !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        #sidebar.collapsed .sidebar-icon-only > :not(:first-child) {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+        #sidebar.collapsed .sidebar-icon-only .fa-solid,
+        #sidebar.collapsed .sidebar-icon-only .fa-regular { margin-right: 0; }
+        #sidebar.collapsed .control-btn i { margin-right: 0; }
+        #sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 40;
+            visibility: hidden;
+        }
+        #sidebar-backdrop.visible {
+            opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
+        }
+        body.sidebar-mobile-open { overflow: hidden; }
+        @media (max-width: 1024px) {
+            #sidebar {
+                position: fixed;
+                inset: 0 auto 0 0;
+                width: 280px;
+                transform: translateX(-100%);
+                box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+                z-index: 50;
+            }
+            #sidebar.mobile-open { transform: translateX(0); }
+            #sidebar.collapsed { width: 280px; }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif']
+                    },
+                    colors: {
+                        navy: '#0908c3',
+                        sky: '#87CEEB'
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="bg-gray-50" data-active-sidebar-link="dashboard">
+
+<div id="dashboard-interface" class="relative flex flex-col lg:flex-row min-h-screen lg:h-screen w-full bg-gray-50 text-gray-900 font-inter">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-[280px] bg-white border-r border-gray-200 flex flex-col shadow-sm transition-all duration-300 flex-shrink-0 min-h-0 lg:max-h-screen overflow-y-auto">
+        <!-- Header -->
+        <div id="sidebar-header" class="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+            <div class="flex items-center space-x-2 sidebar-icon-only">
+                <div class="w-9 h-9 bg-navy rounded-xl flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-robot text-white text-base"></i>
+                </div>
+                <h1 class="text-base font-semibold text-gray-800 sidebar-collapsible">AI Assistant</h1>
+            </div>
+            <button id="sidebar-toggle" class="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Collapse sidebar" aria-expanded="true">
+                <i class="fa-solid fa-chevron-left text-sm" data-icon-collapse></i>
+                <i class="fa-solid fa-chevron-right text-sm hidden" data-icon-expand></i>
+            </button>
+        </div>
+
+        <!-- New Chat Button -->
+        <div id="new-chat-section" class="px-3 py-2 space-y-2">
+            <button id="sidebar-new-chat" class="w-full flex items-center justify-center bg-navy text-white rounded-xl h-8 text-sm font-medium hover:bg-navy/90 shadow-md control-btn">
+                <i class="fa-solid fa-plus mr-2"></i> <span class="sidebar-collapsible">New Chat</span>
+            </button>
+        </div>
+
+        <!-- Dashboard Navigation -->
+        <div id="dashboard-nav" class="px-4 pb-2.5">
+            <div class="space-y-0.5">
+                <a href="dashboard.html" class="w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="dashboard">
+                    <i class="fa-solid fa-chart-line text-sm"></i>
+                    <span class="text-sm sidebar-collapsible">Dashboard</span>
+                </a>
+                <a href="terminology.html" class="w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="terminology">
+                    <i class="fa-solid fa-book text-sm"></i>
+                    <span class="text-sm sidebar-collapsible">Terminology</span>
+                </a>
+                <div class="space-y-1.5" data-favorites-section>
+                    <button type="button" class="w-full flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="favorites">
+                        <div class="flex items-center space-x-2.5 min-w-0 sidebar-icon-only">
+                            <i class="fa-solid fa-star text-sm"></i>
+                            <span class="text-sm sidebar-collapsible">Favorites</span>
+                        </div>
+                        <span class="hidden text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full sidebar-collapsible" data-favorites-count></span>
+                    </button>
+                    <div class="pl-9 pr-2 space-y-2 hidden sidebar-collapsible" data-favorites-view>
+                        <div class="text-xs font-semibold text-gray-500">Favorites</div>
+                        <div class="space-y-2 hidden" data-favorites-list></div>
+                        <div class="rounded-lg border border-dashed border-gray-300 p-3 text-xs text-gray-500" data-favorites-empty>
+                            <p class="font-medium text-gray-600">No favorites yet</p>
+                            <p class="mt-1">Use the favorite controls within each page to pin items here for quick access.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Project and Project Folders -->
+        <div id="project-section" class="px-4 pb-2.5" data-project-section>
+            <div class="flex items-center justify-between px-3 pb-1.5 sidebar-collapsible">
+                <span class="text-xs font-semibold tracking-wide text-gray-400 uppercase">Projects</span>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-projects-toggle aria-expanded="true">
+                    <span class="sr-only">Toggle project folders</span>
+                    <i class="fa-solid fa-chevron-down text-xs" data-projects-icon="expanded"></i>
+                    <i class="fa-solid fa-chevron-right text-xs hidden" data-projects-icon="collapsed"></i>
+                </button>
+            </div>
+            <div class="space-y-0.5" data-projects-content>
+                <a href="create-project.html" class="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 cursor-pointer nav-item" data-sidebar-link="new-project">
+                    <div class="flex items-center space-x-2.5 min-w-0 sidebar-icon-only">
+                        <i class="fa-solid fa-folder-plus text-sm"></i>
+                        <span class="text-sm sidebar-collapsible">New Project</span>
+                    </div>
+                </a>
+
+                <div data-project-folders class="space-y-0.5"></div>
+            </div>
+        </div>
+
+        <!-- Chat History -->
+        <nav id="chat-history" class="flex-1 overflow-y-auto px-4 space-y-1" data-chats-section>
+            <div class="flex items-center justify-between px-3 pb-1.5 sidebar-collapsible">
+                <span class="text-xs font-semibold tracking-wide text-gray-400 uppercase">Chats</span>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-chats-toggle aria-expanded="true">
+                    <span class="sr-only">Toggle chats</span>
+                    <i class="fa-solid fa-chevron-down text-xs" data-chats-icon="expanded"></i>
+                    <i class="fa-solid fa-chevron-right text-xs hidden" data-chats-icon="collapsed"></i>
+                </button>
+            </div>
+            <div class="space-y-0.5" data-chats-content>
+                <div data-chat-history class="space-y-0.5"></div>
+            </div>
+        </nav>
+
+        <!-- User Profile -->
+        <div id="user-profile" class="border-t border-gray-200 p-2">
+            <div class="flex items-center space-x-2 px-2.5 py-1 rounded-xl hover:bg-gray-50 cursor-pointer nav-item sidebar-icon-only">
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-8 h-8 rounded-full">
+                <div class="flex-1 min-w-0 sidebar-collapsible">
+                    <div class="flex items-center space-x-1.5">
+                        <p class="text-sm font-medium text-gray-800 truncate">John Smith</p>
+                        <span class="inline-flex items-center justify-center w-2 h-2 rounded-full bg-green-500" role="status" aria-label="Online"></span>
+                    </div>
+                    <p class="text-xs text-gray-500">Product Owner</p>
+                </div>
+                <i class="fa-solid fa-gear text-gray-400 hover:text-gray-600 sidebar-collapsible"></i>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="flex-1 flex flex-col bg-gray-50 order-2 lg:order-none min-h-0 lg:max-h-screen lg:overflow-hidden">
+        <!-- Navigation Bar -->
+        <header id="header"
+            data-topbar
+            data-topbar-title="Dashboard"
+            data-topbar-subtitle="Portfolio overview and product alignment insights"
+            data-topbar-icon="fa-solid fa-chart-line"
+            data-topbar-icon-color="text-navy"
+            data-topbar-icon-bg="bg-navy/10">
+            <div data-topbar-leading class="flex items-center space-x-2">
+                <button id="mobile-sidebar-toggle" class="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Open sidebar">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+            <div data-topbar-actions>
+                <button class="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-full transition-all text-sm font-medium control-btn">
+                    Export Report
+                </button>
+                <button class="px-4 py-2 bg-navy text-white hover:bg-navy/90 rounded-full transition-all text-sm font-medium control-btn">
+                    Add Project
+                </button>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <div id="dashboard-content" class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="max-w-7xl mx-auto space-y-6">
+
+                <!-- Date Range Picker -->
+                <section id="date-range-picker" class="bg-white rounded-xl border border-gray-200 p-4">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <h3 class="text-lg font-semibold text-gray-800">Dashboard Period</h3>
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                            <div class="flex items-center space-x-2">
+                                <label class="text-sm text-gray-600" for="dashboard-period-from">From:</label>
+                                <input id="dashboard-period-from" type="date" value="2024-09-01" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy/50 focus:border-navy">
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <label class="text-sm text-gray-600" for="dashboard-period-to">To:</label>
+                                <input id="dashboard-period-to" type="date" value="2024-09-30" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy/50 focus:border-navy">
+                            </div>
+                            <button class="px-4 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:bg-navy/90 control-btn">Apply</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Task Overview -->
+                <section id="task-overview" class="bg-white rounded-xl border border-gray-200 p-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-6">Task Overview</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                        <div class="bg-gray-50 rounded-lg p-4 text-center card-hover">
+                            <div class="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <i class="fa-solid fa-inbox text-white text-sm"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-gray-800">100</div>
+                            <div class="text-sm text-gray-600">Backlog</div>
+                        </div>
+
+                        <div class="bg-blue-50 rounded-lg p-4 text-center card-hover">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <i class="fa-solid fa-play text-white text-sm"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-gray-800">20</div>
+                            <div class="text-sm text-gray-600">In Progress</div>
+                        </div>
+
+                        <div class="bg-orange-50 rounded-lg p-4 text-center card-hover">
+                            <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <i class="fa-solid fa-eye text-white text-sm"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-gray-800">15</div>
+                            <div class="text-sm text-gray-600">In Review</div>
+                        </div>
+
+                        <div class="bg-red-50 rounded-lg p-4 text-center card-hover">
+                            <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <i class="fa-solid fa-ban text-white text-sm"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-gray-800">8</div>
+                            <div class="text-sm text-gray-600">Blocked</div>
+                        </div>
+
+                        <div class="bg-purple-50 rounded-lg p-4 text-center card-hover">
+                            <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <i class="fa-solid fa-vial text-white text-sm"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-gray-800">12</div>
+                            <div class="text-sm text-gray-600">Testing</div>
+                        </div>
+
+                        <div class="bg-green-50 rounded-lg p-4 text-center card-hover">
+                            <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <i class="fa-solid fa-check text-white text-sm"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-gray-800">45</div>
+                            <div class="text-sm text-gray-600">Completed</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Project Status Section -->
+                <section id="project-status-section" class="bg-white rounded-xl border border-gray-200 p-6">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+                        <h3 class="text-xl font-semibold text-gray-800">Project Status</h3>
+                        <button class="text-navy hover:text-navy/80 text-sm font-medium"><i class="fa-solid fa-plus mr-2"></i>Add Project</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <article class="border border-gray-200 rounded-lg p-5 card-hover">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="font-semibold text-gray-800">PAMM Rebate Enhancement</h4>
+                                <button class="text-gray-400 hover:text-gray-600" aria-label="Edit project">
+                                    <i class="fa-solid fa-pencil text-sm"></i>
+                                </button>
+                            </div>
+                            <dl class="space-y-3 text-sm">
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-gray-600">Status:</dt>
+                                    <dd class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">In Progress</dd>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-gray-600">Priority:</dt>
+                                    <dd class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">High</dd>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-gray-600">Owner:</dt>
+                                    <dd class="text-gray-800">Sarah Chen</dd>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-gray-600">Start:</dt>
+                                    <dd class="text-gray-800">Aug 15, 2024</dd>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-gray-600">End:</dt>
+                                    <dd class="text-gray-800">Oct 15, 2024</dd>
+                                </div>
+                            </dl>
+                            <div class="space-y-1 mt-4">
+                                <div class="flex justify-between text-sm text-gray-600">
+                                    <span>Progress</span>
+                                    <span>75%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="bg-blue-600 h-2 rounded-full progress-bar" style="width: 75%"></div>
+                                </div>
+                            </div>
+                            <p class="text-sm mt-3"><span class="text-gray-600">Blockers:</span><span class="text-red-600 ml-1">API Dependencies</span></p>
+                        </article>
+
+                        <article class="border border-gray-200 rounded-lg p-5 card-hover">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="font-semibold text-gray-800">Alternative Trading Platform</h4>
+                                <button class="text-gray-400 hover:text-gray-600" aria-label="Edit project">
+                                    <i class="fa-solid fa-pencil text-sm"></i>
+                                </button>
+                            </div>
+                            <dl class="space-y-3 text-sm">
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-gray-600">Status:</dt>
+                                    <dd class="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-medium">Planning</dd>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-gray-600">Priority:</dt>
+                                    <dd class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">Medium</dd>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-gray-600">Owner:</dt>
+                                    <dd class="text-gray-800">Mike Johnson</dd>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-gray-600">Start:</dt>
+                                    <dd class="text-gray-800">Sep 01, 2024</dd>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-gray-600">End:</dt>
+                                    <dd class="text-gray-800">Nov 30, 2024</dd>
+                                </div>
+                            </dl>
+                            <div class="space-y-1 mt-4">
+                                <div class="flex justify-between text-sm text-gray-600">
+                                    <span>Progress</span>
+                                    <span>25%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2" role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="bg-orange-600 h-2 rounded-full progress-bar" style="width: 25%"></div>
+                                </div>
+                            </div>
+                            <p class="text-sm mt-3"><span class="text-gray-600">Blockers:</span><span class="text-green-600 ml-1">None</span></p>
+                        </article>
+
+                        <article class="border border-gray-200 rounded-lg p-5 card-hover">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="font-semibold text-gray-800">Mobile App Redesign</h4>
+                                <button class="text-gray-400 hover:text-gray-600" aria-label="Edit project">
+                                    <i class="fa-solid fa-pencil text-sm"></i>
+                                </button>
+                            </div>
+                            <dl class="space-y-3 text-sm">
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-gray-600">Status:</dt>
+                                    <dd class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Completed</dd>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-gray-600">Priority:</dt>
+                                    <dd class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">Low</dd>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-gray-600">Owner:</dt>
+                                    <dd class="text-gray-800">Lisa Wang</dd>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-gray-600">Start:</dt>
+                                    <dd class="text-gray-800">Jun 01, 2024</dd>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-gray-600">End:</dt>
+                                    <dd class="text-gray-800">Aug 30, 2024</dd>
+                                </div>
+                            </dl>
+                            <div class="space-y-1 mt-4">
+                                <div class="flex justify-between text-sm text-gray-600">
+                                    <span>Progress</span>
+                                    <span>100%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="bg-green-600 h-2 rounded-full progress-bar" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            <p class="text-sm mt-3"><span class="text-gray-600">Blockers:</span><span class="text-green-600 ml-1">None</span></p>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- Priority Alignment -->
+                <section id="priority-alignment-section" class="bg-white rounded-xl border border-gray-200 p-6">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-4">
+                        <h3 class="text-xl font-semibold text-gray-800">Priority Alignment</h3>
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                            <div class="flex items-center space-x-2">
+                                <label class="text-sm text-gray-600" for="priority-from">From:</label>
+                                <input id="priority-from" type="date" value="2024-10-01" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy/50 focus:border-navy">
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <label class="text-sm text-gray-600" for="priority-to">To:</label>
+                                <input id="priority-to" type="date" value="2024-12-31" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy/50 focus:border-navy">
+                            </div>
+                            <button class="text-navy hover:text-navy/80 text-sm font-medium"><i class="fa-solid fa-edit mr-2"></i>Update Priorities</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Current Priorities -->
+                        <div>
+                            <h4 class="text-lg font-medium text-gray-800 mb-4">Current Priorities</h4>
+                            <div class="space-y-3">
+                                <article class="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
+                                    <div class="flex items-center space-x-4">
+                                        <span class="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-800">Security Compliance</span>
+                                            <p class="text-xs text-gray-600">Critical security updates and compliance requirements</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Edit priority">
+                                            <i class="fa-solid fa-pencil text-sm"></i>
+                                        </button>
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Reorder priority">
+                                            <i class="fa-solid fa-grip-vertical"></i>
+                                        </button>
+                                    </div>
+                                </article>
+
+                                <article class="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                                    <div class="flex items-center space-x-4">
+                                        <span class="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-800">Performance Optimization</span>
+                                            <p class="text-xs text-gray-600">Platform speed and efficiency improvements</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Edit priority">
+                                            <i class="fa-solid fa-pencil text-sm"></i>
+                                        </button>
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Reorder priority">
+                                            <i class="fa-solid fa-grip-vertical"></i>
+                                        </button>
+                                    </div>
+                                </article>
+
+                                <article class="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div class="flex items-center space-x-4">
+                                        <span class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">3</span>
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-800">Feature Development</span>
+                                            <p class="text-xs text-gray-600">New feature rollouts and enhancements</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Edit priority">
+                                            <i class="fa-solid fa-pencil text-sm"></i>
+                                        </button>
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Reorder priority">
+                                            <i class="fa-solid fa-grip-vertical"></i>
+                                        </button>
+                                    </div>
+                                </article>
+
+                                <article class="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                                    <div class="flex items-center space-x-4">
+                                        <span class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">4</span>
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-800">API Integration</span>
+                                            <p class="text-xs text-gray-600">Third-party service integrations and API improvements</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Edit priority">
+                                            <i class="fa-solid fa-pencil text-sm"></i>
+                                        </button>
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Reorder priority">
+                                            <i class="fa-solid fa-grip-vertical"></i>
+                                        </button>
+                                    </div>
+                                </article>
+
+                                <article class="flex items-center justify-between p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                                    <div class="flex items-center space-x-4">
+                                        <span class="w-8 h-8 bg-purple-500 text-white rounded-full flex items-center justify-center text-sm font-bold">5</span>
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-800">User Experience Enhancement</span>
+                                            <p class="text-xs text-gray-600">UI/UX improvements and user journey optimization</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Edit priority">
+                                            <i class="fa-solid fa-pencil text-sm"></i>
+                                        </button>
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Reorder priority">
+                                            <i class="fa-solid fa-grip-vertical"></i>
+                                        </button>
+                                    </div>
+                                </article>
+
+                                <article class="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <div class="flex items-center space-x-4">
+                                        <span class="w-8 h-8 bg-yellow-500 text-white rounded-full flex items-center justify-center text-sm font-bold">6</span>
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-800">Data Analytics</span>
+                                            <p class="text-xs text-gray-600">Advanced reporting and business intelligence features</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Edit priority">
+                                            <i class="fa-solid fa-pencil text-sm"></i>
+                                        </button>
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Reorder priority">
+                                            <i class="fa-solid fa-grip-vertical"></i>
+                                        </button>
+                                    </div>
+                                </article>
+
+                                <article class="flex items-center justify-between p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                                    <div class="flex items-center space-x-4">
+                                        <span class="w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center text-sm font-bold">7</span>
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-800">Mobile Platform</span>
+                                            <p class="text-xs text-gray-600">Mobile app development and cross-platform compatibility</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Edit priority">
+                                            <i class="fa-solid fa-pencil text-sm"></i>
+                                        </button>
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Reorder priority">
+                                            <i class="fa-solid fa-grip-vertical"></i>
+                                        </button>
+                                    </div>
+                                </article>
+
+                                <article class="flex items-center justify-between p-4 bg-teal-50 border border-teal-200 rounded-lg">
+                                    <div class="flex items-center space-x-4">
+                                        <span class="w-8 h-8 bg-teal-500 text-white rounded-full flex items-center justify-center text-sm font-bold">8</span>
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-800">Infrastructure Scaling</span>
+                                            <p class="text-xs text-gray-600">System scalability and infrastructure improvements</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Edit priority">
+                                            <i class="fa-solid fa-pencil text-sm"></i>
+                                        </button>
+                                        <button class="text-gray-400 hover:text-gray-600" aria-label="Reorder priority">
+                                            <i class="fa-solid fa-grip-vertical"></i>
+                                        </button>
+                                    </div>
+                                </article>
+                            </div>
+                        </div>
+
+                        <!-- Priority Comparison -->
+                        <div>
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                                <h4 class="text-lg font-medium text-gray-800">Priority Changes Comparison</h4>
+                                <div class="flex items-center space-x-2">
+                                    <label class="text-sm text-gray-600" for="priority-compare">Compare with:</label>
+                                    <select id="priority-compare" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy/50 focus:border-navy">
+                                        <option>Previous Quarter</option>
+                                        <option>Last Month</option>
+                                        <option>6 Months Ago</option>
+                                        <option>Custom Period</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3">
+                                <article class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-medium text-gray-800">Security Compliance</span>
+                                        <div class="flex items-center space-x-2 text-xs">
+                                            <span class="text-gray-500">Was #3</span>
+                                            <i class="fa-solid fa-arrow-up text-green-600 text-sm"></i>
+                                            <span class="font-medium text-green-600">+2</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-gray-600">Moved up due to new regulatory requirements</p>
+                                </article>
+
+                                <article class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-medium text-gray-800">Performance Optimization</span>
+                                        <div class="flex items-center space-x-2 text-xs">
+                                            <span class="text-gray-500">Was #1</span>
+                                            <i class="fa-solid fa-arrow-down text-red-600 text-sm"></i>
+                                            <span class="font-medium text-red-600">-1</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-gray-600">Deprioritized after completing major optimizations</p>
+                                </article>
+
+                                <article class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-medium text-gray-800">Feature Development</span>
+                                        <div class="flex items-center space-x-2 text-xs">
+                                            <span class="text-gray-500">Was #2</span>
+                                            <i class="fa-solid fa-arrow-down text-red-600 text-sm"></i>
+                                            <span class="font-medium text-red-600">-1</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-gray-600">Shifted focus to infrastructure and security</p>
+                                </article>
+
+                                <article class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-medium text-gray-800">API Integration</span>
+                                        <div class="flex items-center space-x-2 text-xs">
+                                            <span class="text-gray-500">Was #6</span>
+                                            <i class="fa-solid fa-arrow-up text-green-600 text-sm"></i>
+                                            <span class="font-medium text-green-600">+2</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-gray-600">Elevated due to partner integration requirements</p>
+                                </article>
+
+                                <article class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-medium text-gray-800">Mobile Platform</span>
+                                        <div class="flex items-center space-x-2 text-xs">
+                                            <span class="text-gray-500">New</span>
+                                            <i class="fa-solid fa-plus text-blue-600 text-sm"></i>
+                                            <span class="font-medium text-blue-600">Added</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-gray-600">Added based on user feedback and market demand</p>
+                                </article>
+
+                                <article class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-medium text-gray-800">Legacy System Migration</span>
+                                        <div class="flex items-center space-x-2 text-xs">
+                                            <span class="text-gray-500">Was #8</span>
+                                            <i class="fa-solid fa-minus text-gray-600 text-sm"></i>
+                                            <span class="font-medium text-gray-600">Removed</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-gray-600">Completed migration project successfully</p>
+                                </article>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Product Deliverables -->
+                <section id="product-deliverables-section" class="bg-white rounded-xl border border-gray-200 p-6">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+                        <h3 class="text-xl font-semibold text-gray-800">Product Deliverables</h3>
+                        <button class="text-navy hover:text-navy/80 text-sm font-medium"><i class="fa-solid fa-plus mr-2"></i>Add Deliverable</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <article class="border border-gray-200 rounded-lg p-4 card-hover">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-mobile-alt text-green-600"></i>
+                                </div>
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Released</span>
+                            </div>
+                            <h4 class="font-medium text-gray-800 mb-2">Mobile Trading App v2.1</h4>
+                            <p class="text-sm text-gray-600 mb-3">Enhanced trading interface with real-time market data and improved user experience.</p>
+                            <p class="text-xs text-gray-500">Released: Sep 15, 2024</p>
+                        </article>
+
+                        <article class="border border-gray-200 rounded-lg p-4 card-hover">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-chart-bar text-purple-600"></i>
+                                </div>
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Released</span>
+                            </div>
+                            <h4 class="font-medium text-gray-800 mb-2">Advanced Analytics Dashboard</h4>
+                            <p class="text-sm text-gray-600 mb-3">Comprehensive trading analytics and performance metrics for portfolio management.</p>
+                            <p class="text-xs text-gray-500">Released: Sep 08, 2024</p>
+                        </article>
+
+                        <article class="border border-gray-200 rounded-lg p-4 card-hover">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-file-alt text-red-600"></i>
+                                </div>
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Released</span>
+                            </div>
+                            <h4 class="font-medium text-gray-800 mb-2">Automated Reporting System</h4>
+                            <p class="text-sm text-gray-600 mb-3">Streamlined report generation for compliance and business intelligence purposes.</p>
+                            <p class="text-xs text-gray-500">Released: Sep 22, 2024</p>
+                        </article>
+
+                        <article class="border border-gray-200 rounded-lg p-4 card-hover">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-shield-alt text-blue-600"></i>
+                                </div>
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Released</span>
+                            </div>
+                            <h4 class="font-medium text-gray-800 mb-2">Multi-Factor Authentication</h4>
+                            <p class="text-sm text-gray-600 mb-3">Enhanced security system with biometric and SMS verification for account protection.</p>
+                            <p class="text-xs text-gray-500">Released: Aug 30, 2024</p>
+                        </article>
+
+                        <article class="border border-gray-200 rounded-lg p-4 card-hover">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-robot text-teal-600"></i>
+                                </div>
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Released</span>
+                            </div>
+                            <h4 class="font-medium text-gray-800 mb-2">AI Trading Assistant</h4>
+                            <p class="text-sm text-gray-600 mb-3">Intelligent trading recommendations and market analysis powered by machine learning.</p>
+                            <p class="text-xs text-gray-500">Released: Aug 15, 2024</p>
+                        </article>
+
+                        <article class="border border-gray-200 rounded-lg p-4 card-hover">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-cog text-orange-600"></i>
+                                </div>
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Released</span>
+                            </div>
+                            <h4 class="font-medium text-gray-800 mb-2">API Rate Optimization</h4>
+                            <p class="text-sm text-gray-600 mb-3">Improved API performance with intelligent caching and load balancing mechanisms.</p>
+                            <p class="text-xs text-gray-500">Released: Jul 28, 2024</p>
+                        </article>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <div id="sidebar-backdrop" aria-hidden="true"></div>
+</div>
+
+<!-- Footer -->
+<div id="footer"></div>
+
+</body>
+</html>

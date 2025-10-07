@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice of Customer Insights · AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="scripts/sidebar.js" defer></script>
+    <script src="scripts/sidebar-favorites.js" defer></script>
+    <script src="scripts/sidebar-projects.js" defer></script>
+    <script src="scripts/sidebar-chats.js" defer></script>
+    <script src="scripts/sidebar-init.js" defer></script>
+    <script src="scripts/spa-navigation.js" defer></script>
+    <script src="scripts/chat-input.js" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap">
+    <style>
+        ::-webkit-scrollbar { display: none; }
+        body { font-family: 'Inter', sans-serif; }
+        .nav-item { transition: all 0.2s ease-in-out; }
+        .nav-item:hover { transform: translateX(2px); }
+        .message-bubble { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .output-card { transition: all 0.3s ease-in-out; }
+        .output-card:hover { box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); transform: translateY(-2px); }
+        .tab-active { border-bottom: 2px solid #0908c3; color: #0908c3; }
+        #sidebar { transition: width 0.3s ease, transform 0.3s ease; }
+        @media (min-width: 1024px) {
+            #sidebar { height: 100vh; }
+        }
+        #sidebar.collapsed { width: 80px; }
+        #sidebar.collapsed .sidebar-collapsible { display: none !important; }
+        #sidebar.collapsed .sidebar-icon-only {
+            justify-content: center !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        #sidebar.collapsed .sidebar-icon-only > :not(:first-child) {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+        #sidebar.collapsed .sidebar-icon-only .fa-solid,
+        #sidebar.collapsed .sidebar-icon-only .fa-regular { margin-right: 0; }
+        #sidebar.collapsed .control-btn i { margin-right: 0; }
+        #sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 40;
+            visibility: hidden;
+        }
+        #sidebar-backdrop.visible {
+            opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
+        }
+        body.sidebar-mobile-open { overflow: hidden; }
+        @media (max-width: 1024px) {
+            #sidebar {
+                position: fixed;
+                inset: 0 auto 0 0;
+                width: 280px;
+                transform: translateX(-100%);
+                box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+                z-index: 50;
+            }
+            #sidebar.mobile-open { transform: translateX(0); }
+            #sidebar.collapsed { width: 280px; }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        navy: '#0908c3',
+                        sky: '#87CEEB',
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+<body class="bg-gray-50" data-active-sidebar-link="chat-voice-of-customer">
+
+<div id="notification-container" class="fixed top-4 right-4 z-50 space-y-3"></div>
+
+<div id="customer-feedback-interface" class="relative flex flex-col lg:flex-row min-h-screen lg:h-screen w-full bg-gray-50 text-gray-900 font-inter">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-[280px] bg-white border-r border-gray-200 flex flex-col shadow-sm transition-all duration-300 flex-shrink-0 min-h-0 lg:max-h-screen overflow-y-auto">
+        <!-- Header -->
+        <div id="sidebar-header" class="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+            <div class="flex items-center space-x-2 sidebar-icon-only">
+                <div class="w-9 h-9 bg-navy rounded-xl flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-robot text-white text-base"></i>
+                </div>
+                <h1 class="text-base font-semibold text-gray-800 sidebar-collapsible">AI Assistant</h1>
+            </div>
+            <button id="sidebar-toggle" class="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Collapse sidebar" aria-expanded="true">
+                <i class="fa-solid fa-chevron-left text-sm" data-icon-collapse></i>
+                <i class="fa-solid fa-chevron-right text-sm hidden" data-icon-expand></i>
+            </button>
+        </div>
+
+        <!-- New Chat Button -->
+        <div id="new-chat-section" class="px-3 py-2 space-y-2">
+            <button id="sidebar-new-chat" class="w-full flex items-center justify-center bg-navy text-white rounded-xl h-8 text-sm font-medium hover:bg-navy/90 shadow-md control-btn">
+                <i class="fa-solid fa-plus mr-2"></i> <span class="sidebar-collapsible">New Chat</span>
+            </button>
+        </div>
+
+        <!-- Dashboard Navigation -->
+        <div id="dashboard-nav" class="px-4 pb-2.5">
+            <div class="space-y-0.5">
+                <a href="dashboard.html" class="w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="dashboard">
+                    <i class="fa-solid fa-chart-line text-sm"></i>
+                    <span class="text-sm sidebar-collapsible">Dashboard</span>
+                </a>
+                <a href="terminology.html" class="w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="terminology">
+                    <i class="fa-solid fa-book text-sm"></i>
+                    <span class="text-sm sidebar-collapsible">Terminology</span>
+                </a>
+                <div class="space-y-1.5" data-favorites-section>
+                    <button type="button" class="w-full flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="favorites">
+                        <div class="flex items-center space-x-2.5 min-w-0 sidebar-icon-only">
+                            <i class="fa-solid fa-star text-sm"></i>
+                            <span class="text-sm sidebar-collapsible">Favorites</span>
+                        </div>
+                        <span class="hidden text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full sidebar-collapsible" data-favorites-count></span>
+                    </button>
+                    <div class="pl-9 pr-2 space-y-2 hidden sidebar-collapsible" data-favorites-view>
+                        <div class="text-xs font-semibold text-gray-500">Favorites</div>
+                        <div class="space-y-2 hidden" data-favorites-list></div>
+                        <div class="rounded-lg border border-dashed border-gray-300 p-3 text-xs text-gray-500" data-favorites-empty>
+                            <p class="font-medium text-gray-600">No favorites yet</p>
+                            <p class="mt-1">Use the favorite controls within each page to pin items here for quick access.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Section -->
+        <div id="project-section" class="px-4 pb-2.5" data-project-section>
+            <div class="flex items-center justify-between px-3 pb-1.5 sidebar-collapsible">
+                <span class="text-xs font-semibold tracking-wide text-gray-400 uppercase">Projects</span>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-projects-toggle aria-expanded="true">
+                    <span class="sr-only">Toggle project folders</span>
+                    <i class="fa-solid fa-chevron-down text-xs" data-projects-icon="expanded"></i>
+                    <i class="fa-solid fa-chevron-right text-xs hidden" data-projects-icon="collapsed"></i>
+                </button>
+            </div>
+            <div class="space-y-0.5" data-projects-content>
+                <a href="create-project.html" class="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 cursor-pointer nav-item" data-sidebar-link="new-project">
+                    <div class="flex items-center space-x-2.5 min-w-0 sidebar-icon-only">
+                        <i class="fa-solid fa-folder-plus text-sm"></i>
+                        <span class="text-sm sidebar-collapsible">New Project</span>
+                    </div>
+                </a>
+                <div data-project-folders class="space-y-0.5"></div>
+            </div>
+        </div>
+
+        <!-- Chat History -->
+        <nav id="chat-history" class="flex-1 overflow-y-auto px-4 space-y-1" data-chats-section>
+            <div class="flex items-center justify-between px-3 pb-1.5 sidebar-collapsible">
+                <span class="text-xs font-semibold tracking-wide text-gray-400 uppercase">Chats</span>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-chats-toggle aria-expanded="true">
+                    <span class="sr-only">Toggle chats</span>
+                    <i class="fa-solid fa-chevron-down text-xs" data-chats-icon="expanded"></i>
+                    <i class="fa-solid fa-chevron-right text-xs hidden" data-chats-icon="collapsed"></i>
+                </button>
+            </div>
+            <div class="space-y-0.5" data-chats-content>
+                <div data-chat-history class="space-y-0.5"></div>
+            </div>
+        </nav>
+
+        <!-- User Profile -->
+        <div id="user-profile" class="border-t border-gray-200 p-2">
+            <div class="flex items-center space-x-2 px-2.5 py-1 rounded-xl hover:bg-gray-50 cursor-pointer nav-item sidebar-icon-only">
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-8 h-8 rounded-full">
+                <div class="flex-1 min-w-0 sidebar-collapsible">
+                    <div class="flex items-center space-x-1.5">
+                        <p class="text-sm font-medium text-gray-800 truncate">John Smith</p>
+                        <span class="inline-flex items-center justify-center w-2 h-2 rounded-full bg-green-500" role="status" aria-label="Online"></span>
+                    </div>
+                    <p class="text-xs text-gray-500">Product Owner</p>
+                </div>
+                <i class="fa-solid fa-gear text-gray-400 hover:text-gray-600 sidebar-collapsible"></i>
+            </div>
+        </div>
+    </aside>
+
+    <div id="sidebar-backdrop" aria-hidden="true"></div>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col lg:flex-row min-h-0 bg-gray-50">
+        <!-- Chat Panel -->
+        <section id="chat-panel" class="flex flex-col w-full lg:w-[60%] bg-white border-b lg:border-b-0 lg:border-r border-gray-200">
+            <!-- Chat Header -->
+            <header class="flex items-center justify-between h-16 border-b border-gray-200 px-6 bg-white">
+                <div class="flex items-center space-x-3">
+                    <button id="mobile-sidebar-toggle" class="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Open sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="w-9 h-9 bg-navy/10 rounded-xl flex items-center justify-center">
+                        <i class="fa-regular fa-comment text-navy text-base"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-800">Voice of Customer Insights</h2>
+                        <p class="text-xs text-gray-500">Customer Feedback Automation</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Share">
+                        <i class="fa-solid fa-share-nodes text-sm"></i>
+                    </button>
+                    <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Download">
+                        <i class="fa-solid fa-download text-sm"></i>
+                    </button>
+                    <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="More options">
+                        <i class="fa-solid fa-ellipsis-vertical text-sm"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Chat Messages -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-8 bg-gray-50">
+                <!-- User Message -->
+                <div class="flex justify-end items-end space-x-3 message-bubble">
+                    <div class="flex flex-col items-end">
+                        <div class="max-w-xl bg-navy text-white rounded-t-2xl rounded-bl-2xl px-5 py-3">
+                            <p class="text-sm leading-relaxed">We need an insights plan that connects survey feedback, support tickets, and community threads. Can you map a workflow that keeps product teams informed every week?</p>
+                        </div>
+                        <span class="text-xs text-gray-400 mt-1.5">9:12 AM</span>
+                    </div>
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-8 h-8 rounded-full flex-shrink-0">
+                </div>
+
+                <!-- AI Message -->
+                <div class="flex justify-start items-start space-x-3 message-bubble">
+                    <div class="w-8 h-8 bg-navy rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fa-solid fa-robot text-white text-sm"></i>
+                    </div>
+                    <div class="max-w-xl">
+                        <div class="bg-white text-gray-800 rounded-t-2xl rounded-br-2xl px-5 py-3 border border-gray-200">
+                            <p class="text-sm leading-relaxed">Absolutely—here is a connected voice-of-customer workflow that aligns feedback streams and keeps stakeholders updated:</p>
+                        </div>
+                        <div class="mt-2 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <p class="text-xs text-gray-500 mb-2 font-medium">Key deliverables generated for you:</p>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium"><i class="fa-solid fa-diagram-project mr-1.5"></i>Weekly Workflow</span>
+                                <span class="inline-flex items-center px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium"><i class="fa-solid fa-chart-simple mr-1.5"></i>Insights Dashboard</span>
+                                <span class="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium"><i class="fa-solid fa-people-group mr-1.5"></i>Team Rituals</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Follow-up -->
+                <div class="flex justify-end items-end space-x-3 message-bubble">
+                    <div class="flex flex-col items-end">
+                        <div class="max-w-xl bg-navy text-white rounded-t-2xl rounded-bl-2xl px-5 py-3">
+                            <p class="text-sm leading-relaxed">This is a great start. Could you highlight the automation touchpoints and note who reviews each signal?</p>
+                        </div>
+                        <span class="text-xs text-gray-400 mt-1.5">9:14 AM</span>
+                    </div>
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-8 h-8 rounded-full flex-shrink-0">
+                </div>
+
+                <!-- AI Follow-up -->
+                <div class="flex justify-start items-start space-x-3 message-bubble">
+                    <div class="w-8 h-8 bg-navy rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fa-solid fa-robot text-white text-sm"></i>
+                    </div>
+                    <div class="max-w-xl">
+                        <div class="bg-white text-gray-800 rounded-t-2xl rounded-br-2xl px-5 py-3 border border-gray-200">
+                            <p class="text-sm leading-relaxed">Here is the automation layer plus review ownership. It keeps feedback flowing without manual triage while making accountability explicit:</p>
+                        </div>
+                        <div class="mt-2 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <p class="text-xs text-gray-500 mb-2 font-medium">Automation &amp; ownership matrix:</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div class="border border-blue-100 bg-blue-50 rounded-lg p-3">
+                                    <h5 class="text-sm font-semibold text-blue-900 mb-1">Support tickets</h5>
+                                    <p class="text-xs text-blue-800 leading-relaxed">Auto-tag sentiment &amp; product area → routed to CX Ops. Weekly summary reviewed by CX lead + PM.</p>
+                                </div>
+                                <div class="border border-emerald-100 bg-emerald-50 rounded-lg p-3">
+                                    <h5 class="text-sm font-semibold text-emerald-900 mb-1">Surveys &amp; NPS</h5>
+                                    <p class="text-xs text-emerald-800 leading-relaxed">Scheduled ingestion → theme clustering → insights doc for Research Ops. Reviewed by Research + GTM.</p>
+                                </div>
+                                <div class="border border-purple-100 bg-purple-50 rounded-lg p-3">
+                                    <h5 class="text-sm font-semibold text-purple-900 mb-1">Community threads</h5>
+                                    <p class="text-xs text-purple-800 leading-relaxed">Daily scrape + toxicity filter → product buzz report. Community manager reviews with PMM.</p>
+                                </div>
+                                <div class="border border-amber-100 bg-amber-50 rounded-lg p-3">
+                                    <h5 class="text-sm font-semibold text-amber-900 mb-1">Revenue notes</h5>
+                                    <p class="text-xs text-amber-800 leading-relaxed">CRM sync surfaces churn risk cues. RevOps automation flags deals for Sales leadership triage.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input -->
+            <div id="chat-input" class="border-t border-gray-200 p-6 bg-white" data-chat-input-root data-chat-input-page-key="chat-voice-of-customer">
+                <div class="relative w-full">
+                    <div class="flex items-center w-full bg-white border border-gray-200 rounded-full shadow-sm pr-2 py-2">
+                        <i class="fa-solid fa-plus text-gray-500 pl-5 pr-3"></i>
+                        <input type="text" id="chat-input-field" placeholder="New chat in Customer Feedback Automation" class="flex-grow bg-transparent text-sm text-gray-800 placeholder-gray-500 focus:outline-none" data-chat-input-field>
+                        <div class="flex items-center space-x-2 pr-2">
+                            <button class="p-2 text-gray-500 hover:text-navy rounded-full hover:bg-gray-100" aria-label="Voice input">
+                                <i class="fa-solid fa-microphone text-lg"></i>
+                            </button>
+                            <button class="w-9 h-9 flex items-center justify-center bg-gray-200 text-gray-500 rounded-full hover:bg-gray-300 transition-all" aria-label="Send message">
+                                <i class="fa-solid fa-arrow-up text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Slash Commands Menu -->
+                    <div id="slash-commands-menu" class="absolute bottom-full left-0 w-full mb-2 bg-white border border-gray-200 rounded-xl shadow-lg hidden" data-chat-input-menu>
+                        <div class="p-3 border-b border-gray-100">
+                            <h4 class="text-sm font-medium text-gray-700">Quick Commands</h4>
+                            <p class="text-xs text-gray-500">Type / to see all commands</p>
+                        </div>
+                        <div class="max-h-64 overflow-y-auto">
+                            <div class="command-item flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50" data-command="/weekly-report" data-chat-command>
+                                <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fa-solid fa-calendar-week text-blue-600 text-sm"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-sm font-medium text-gray-800">/weekly-report</div>
+                                    <div class="text-xs text-gray-500">Summarize last 7 days of customer signals</div>
+                                </div>
+                                <div class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Enter</div>
+                            </div>
+
+                            <div class="command-item flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50" data-command="/escalate" data-chat-command>
+                                <div class="w-8 h-8 bg-rose-100 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fa-solid fa-flag text-rose-600 text-sm"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-sm font-medium text-gray-800">/escalate</div>
+                                    <div class="text-xs text-gray-500">Flag an urgent customer issue to leadership</div>
+                                </div>
+                                <div class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Enter</div>
+                            </div>
+
+                            <div class="command-item flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50" data-command="/trend" data-chat-command>
+                                <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fa-solid fa-arrow-trend-up text-emerald-600 text-sm"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-sm font-medium text-gray-800">/trend</div>
+                                    <div class="text-xs text-gray-500">Highlight the top emerging themes</div>
+                                </div>
+                                <div class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Enter</div>
+                            </div>
+
+                            <div class="command-item flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50" data-command="/persona" data-chat-command>
+                                <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fa-solid fa-user-pen text-purple-600 text-sm"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-sm font-medium text-gray-800">/persona</div>
+                                    <div class="text-xs text-gray-500">Update personas with new qualitative quotes</div>
+                                </div>
+                                <div class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Enter</div>
+                            </div>
+
+                            <div class="command-item flex items-center p-3 hover:bg-gray-50 cursor-pointer" data-command="/action-items" data-chat-command>
+                                <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fa-solid fa-list-check text-amber-600 text-sm"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-sm font-medium text-gray-800">/action-items</div>
+                                    <div class="text-xs text-gray-500">Summarize next steps for each squad</div>
+                                </div>
+                                <div class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Enter</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Output Panel -->
+        <aside id="output-panel" class="w-full lg:w-[40%] bg-gray-50 flex flex-col">
+            <header id="output-header" class="h-16 border-b border-gray-200 px-6 bg-white flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800">Generated Outputs</h3>
+                    <p class="text-xs text-gray-500">Updated 3 minutes ago</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Filter outputs">
+                        <i class="fa-solid fa-filter text-sm"></i>
+                    </button>
+                    <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Download outputs">
+                        <i class="fa-solid fa-download text-sm"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div id="output-tabs" class="bg-white border-b border-gray-200 px-6">
+                <div class="flex space-x-6 overflow-x-auto">
+                    <button class="py-3 text-sm font-medium text-navy tab-active">All</button>
+                    <button class="py-3 text-sm font-medium text-gray-500 hover:text-gray-700">Workflows</button>
+                    <button class="py-3 text-sm font-medium text-gray-500 hover:text-gray-700">Dashboards</button>
+                    <button class="py-3 text-sm font-medium text-gray-500 hover:text-gray-700">Docs</button>
+                    <button class="py-3 text-sm font-medium text-gray-500 hover:text-gray-700">Alerts</button>
+                </div>
+            </div>
+
+            <div id="output-cards" class="flex-1 overflow-y-auto p-6 space-y-4">
+                <div class="bg-white rounded-xl border border-gray-200 p-6 output-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fa-solid fa-diagram-project text-blue-600 text-lg"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-800">Weekly VOC Workflow</h4>
+                                <p class="text-sm text-gray-500">v2.0 • Generated today</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Pin">
+                                <i class="fa-solid fa-thumbtack text-sm"></i>
+                            </button>
+                            <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Download">
+                                <i class="fa-solid fa-download text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <pre class="text-sm text-gray-700 font-mono whitespace-pre-wrap">1. Collect signals: surveys (daily), support (hourly), community (daily)
+2. Auto-tag themes &amp; sentiment across feeds
+3. Generate Monday briefing (deck + bullet digest)
+4. Trigger squad-specific actions via Jira + Slack</pre>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">Workflow</span>
+                        <button class="px-4 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:bg-navy/90">Open Playbook</button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-200 p-6 output-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                <i class="fa-solid fa-chart-line text-emerald-600 text-lg"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-800">Signal Health Dashboard</h4>
+                                <p class="text-sm text-gray-500">v1.5 • Refreshed 5 min ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Bookmark">
+                                <i class="fa-solid fa-bookmark text-sm"></i>
+                            </button>
+                            <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Share">
+                                <i class="fa-solid fa-share text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <ul class="text-sm text-gray-700 space-y-1">
+                            <li>• Sentiment trendline by product area</li>
+                            <li>• Ticket backlog aging and response SLAs</li>
+                            <li>• Survey participation heatmap by segment</li>
+                            <li>• Top verbatim quotes for executive review</li>
+                        </ul>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium">Dashboard</span>
+                        <button class="px-4 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:bg-navy/90">Launch Dashboard</button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-200 p-6 output-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i class="fa-solid fa-users-line text-purple-600 text-lg"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-800">Squad Rituals Guide</h4>
+                                <p class="text-sm text-gray-500">v1.1 • Published yesterday</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Edit">
+                                <i class="fa-solid fa-pen text-sm"></i>
+                            </button>
+                            <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Download">
+                                <i class="fa-solid fa-download text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-3 mb-4">
+                        <div class="border border-gray-200 rounded-lg p-3">
+                            <h5 class="font-medium text-gray-800 mb-1">Monday Insights Review</h5>
+                            <p class="text-sm text-gray-600">Product + CX + Research review the weekly briefing &amp; align on cross-team actions.</p>
+                        </div>
+                        <div class="border border-gray-200 rounded-lg p-3">
+                            <h5 class="font-medium text-gray-800 mb-1">Thursday Win/Learn Sync</h5>
+                            <p class="text-sm text-gray-600">Squads share resolved items, open follow-ups, and customer win stories.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">Team Ritual</span>
+                        <button class="px-4 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:bg-navy/90">Export Guide</button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-200 p-6 output-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                                <i class="fa-solid fa-bell text-amber-600 text-lg"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-800">Escalation Alert Pack</h4>
+                                <p class="text-sm text-gray-500">v0.9 • Auto-updated hourly</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Bookmark">
+                                <i class="fa-solid fa-bookmark text-sm"></i>
+                            </button>
+                            <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Share">
+                                <i class="fa-solid fa-share text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-3 mb-4">
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                            <h5 class="font-medium text-amber-800 mb-1">Active escalations</h5>
+                            <ul class="text-sm text-amber-700 space-y-1">
+                                <li>• Fraud alert false positives impacting onboarding (15 users)</li>
+                                <li>• Billing downgrade bug affecting annual customers (7 accounts)</li>
+                                <li>• Community thread trending on integration failures (42 comments)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-medium">Alerts</span>
+                        <button class="px-4 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:bg-navy/90">View Escalations</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+</div>
+
+</body>
+</html>

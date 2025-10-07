@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Project · AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="scripts/sidebar.js" defer></script>
+    <script src="scripts/sidebar-favorites.js" defer></script>
+    <script src="scripts/sidebar-projects.js" defer></script>
+    <script src="scripts/sidebar-chats.js" defer></script>
+    <script src="scripts/sidebar-init.js" defer></script>
+    <script src="scripts/spa-navigation.js" defer></script>
+    <script src="scripts/topbar.js" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap">
+    <style>
+        ::-webkit-scrollbar { display: none; }
+        body { font-family: 'Inter', sans-serif; }
+        .glass-effect { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.9); }
+        .nav-item { transition: all 0.2s ease-in-out; }
+        .nav-item:hover { transform: translateX(2px); }
+        .control-btn { transition: all 0.2s ease-in-out; }
+        .control-btn:hover { transform: scale(1.02); }
+        .form-section { transition: all 0.3s ease-in-out; }
+        .form-section:hover { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); }
+        @keyframes slide-in {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slide-in { animation: slide-in 0.25s ease-out; }
+        #sidebar { transition: width 0.3s ease, transform 0.3s ease; }
+        @media (min-width: 1024px) {
+            #sidebar { height: 100vh; }
+        }
+        #sidebar.collapsed { width: 80px; }
+        #sidebar.collapsed .sidebar-collapsible { display: none !important; }
+        #sidebar.collapsed .sidebar-icon-only {
+            justify-content: center !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        #sidebar.collapsed .sidebar-icon-only > :not(:first-child) {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+        #sidebar.collapsed .sidebar-icon-only .fa-solid,
+        #sidebar.collapsed .sidebar-icon-only .fa-regular { margin-right: 0; }
+        #sidebar.collapsed .control-btn i { margin-right: 0; }
+        #sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 40;
+            visibility: hidden;
+        }
+        #sidebar-backdrop.visible {
+            opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
+        }
+        body.sidebar-mobile-open { overflow: hidden; }
+        @media (max-width: 1024px) {
+            #sidebar {
+                position: fixed;
+                inset: 0 auto 0 0;
+                width: 280px;
+                transform: translateX(-100%);
+                box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+                z-index: 50;
+            }
+            #sidebar.mobile-open { transform: translateX(0); }
+            #sidebar.collapsed { width: 280px; }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif']
+                    },
+                    colors: {
+                        navy: '#0908c3',
+                        sky: '#87CEEB'
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="bg-gray-50" data-active-sidebar-link="new-project">
+
+<div id="notification-container" class="fixed top-4 right-4 z-50 space-y-3"></div>
+
+<div id="create-project-interface" class="relative flex flex-col lg:flex-row min-h-screen lg:h-screen w-full bg-gray-50 text-gray-900 font-inter">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-[280px] bg-white border-r border-gray-200 flex flex-col shadow-sm transition-all duration-300 flex-shrink-0 min-h-0 lg:max-h-screen overflow-y-auto">
+        <!-- Header -->
+        <div id="sidebar-header" class="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+            <div class="flex items-center space-x-2 sidebar-icon-only">
+                <div class="w-9 h-9 bg-navy rounded-xl flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-robot text-white text-base"></i>
+                </div>
+                <h1 class="text-base font-semibold text-gray-800 sidebar-collapsible">AI Assistant</h1>
+            </div>
+            <button id="sidebar-toggle" class="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Collapse sidebar" aria-expanded="true">
+                <i class="fa-solid fa-chevron-left text-sm" data-icon-collapse></i>
+                <i class="fa-solid fa-chevron-right text-sm hidden" data-icon-expand></i>
+            </button>
+        </div>
+
+        <!-- New Chat Button -->
+        <div id="new-chat-section" class="px-3 py-2 space-y-2">
+            <button id="sidebar-new-chat" class="w-full flex items-center justify-center bg-navy text-white rounded-xl h-8 text-sm font-medium hover:bg-navy/90 shadow-md control-btn">
+                <i class="fa-solid fa-plus mr-2"></i> <span class="sidebar-collapsible">New Chat</span>
+            </button>
+        </div>
+
+        <!-- Dashboard Navigation -->
+        <div id="dashboard-nav" class="px-4 pb-2.5">
+            <div class="space-y-0.5">
+                <a href="dashboard.html" class="w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="dashboard">
+                    <i class="fa-solid fa-chart-line text-sm"></i>
+                    <span class="text-sm sidebar-collapsible">Dashboard</span>
+                </a>
+                <a href="terminology.html" class="w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="terminology">
+                    <i class="fa-solid fa-book text-sm"></i>
+                    <span class="text-sm sidebar-collapsible">Terminology</span>
+                </a>
+                <div class="space-y-1.5" data-favorites-section>
+                    <button type="button" class="w-full flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="favorites">
+                        <div class="flex items-center space-x-2.5 min-w-0 sidebar-icon-only">
+                            <i class="fa-solid fa-star text-sm"></i>
+                            <span class="text-sm sidebar-collapsible">Favorites</span>
+                        </div>
+                        <span class="hidden text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full sidebar-collapsible" data-favorites-count></span>
+                    </button>
+                    <div class="pl-9 pr-2 space-y-2 hidden sidebar-collapsible" data-favorites-view>
+                        <div class="text-xs font-semibold text-gray-500">Favorites</div>
+                        <div class="space-y-2 hidden" data-favorites-list></div>
+                        <div class="rounded-lg border border-dashed border-gray-300 p-3 text-xs text-gray-500" data-favorites-empty>
+                            <p class="font-medium text-gray-600">No favorites yet</p>
+                            <p class="mt-1">Use the favorite controls within each page to pin items here for quick access.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Project and Project Folders -->
+        <div id="project-section" class="px-4 pb-2.5" data-project-section>
+            <div class="flex items-center justify-between px-3 pb-1.5 sidebar-collapsible">
+                <span class="text-xs font-semibold tracking-wide text-gray-400 uppercase">Projects</span>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-projects-toggle aria-expanded="true">
+                    <span class="sr-only">Toggle project folders</span>
+                    <i class="fa-solid fa-chevron-down text-xs" data-projects-icon="expanded"></i>
+                    <i class="fa-solid fa-chevron-right text-xs hidden" data-projects-icon="collapsed"></i>
+                </button>
+            </div>
+            <div class="space-y-0.5" data-projects-content>
+                <a href="create-project.html" class="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 cursor-pointer nav-item" data-sidebar-link="new-project">
+                    <div class="flex items-center space-x-2.5 min-w-0 sidebar-icon-only">
+                        <i class="fa-solid fa-folder-plus text-sm"></i>
+                        <span class="text-sm sidebar-collapsible">New Project</span>
+                    </div>
+                </a>
+
+                <div data-project-folders class="space-y-0.5"></div>
+            </div>
+        </div>
+
+        <!-- Chat History -->
+        <nav id="chat-history" class="flex-1 overflow-y-auto px-4 space-y-1" data-chats-section>
+            <div class="flex items-center justify-between px-3 pb-1.5 sidebar-collapsible">
+                <span class="text-xs font-semibold tracking-wide text-gray-400 uppercase">Chats</span>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-chats-toggle aria-expanded="true">
+                    <span class="sr-only">Toggle chats</span>
+                    <i class="fa-solid fa-chevron-down text-xs" data-chats-icon="expanded"></i>
+                    <i class="fa-solid fa-chevron-right text-xs hidden" data-chats-icon="collapsed"></i>
+                </button>
+            </div>
+            <div class="space-y-0.5" data-chats-content>
+                <div data-chat-history class="space-y-0.5"></div>
+            </div>
+        </nav>
+
+        <!-- User Profile -->
+        <div id="user-profile" class="border-t border-gray-200 p-2">
+            <div class="flex items-center space-x-2 px-2.5 py-1 rounded-xl hover:bg-gray-50 cursor-pointer nav-item sidebar-icon-only">
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-8 h-8 rounded-full">
+                <div class="flex-1 min-w-0 sidebar-collapsible">
+                    <div class="flex items-center space-x-1.5">
+                        <p class="text-sm font-medium text-gray-800 truncate">John Smith</p>
+                        <span class="inline-flex items-center justify-center w-2 h-2 rounded-full bg-green-500" role="status" aria-label="Online"></span>
+                    </div>
+                    <p class="text-xs text-gray-500">Product Owner</p>
+                </div>
+                <i class="fa-solid fa-gear text-gray-400 hover:text-gray-600 sidebar-collapsible"></i>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="flex-1 flex flex-col bg-white order-2 lg:order-none min-h-0 lg:max-h-screen lg:overflow-hidden">
+        <!-- Navigation Bar -->
+        <header id="header"
+            data-topbar
+            data-topbar-title="Create New Project"
+            data-topbar-icon="fa-solid fa-diagram-project"
+            data-topbar-icon-color="text-navy"
+            data-topbar-icon-bg="bg-navy/10">
+            <div data-topbar-leading class="flex items-center space-x-2">
+                <button id="mobile-sidebar-toggle" class="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Open sidebar">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <button id="back-button" class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+            </div>
+            <div data-topbar-actions>
+                <button id="cancel-button" class="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-all text-sm font-medium">
+                    Cancel
+                </button>
+                <button id="create-project-button" class="px-4 py-2 bg-navy text-white rounded-lg hover:bg-navy/90 transition-all text-sm font-medium control-btn">
+                    Create Project
+                </button>
+            </div>
+        </header>
+
+        <!-- Project Creation Form -->
+        <div id="project-form" class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="max-w-4xl mx-auto space-y-8">
+
+                <div id="project-summary" class="hidden bg-white border border-sky/40 shadow-sm rounded-2xl p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Project Summary</h3>
+                            <p class="text-sm text-gray-500">Review the configuration that will be created.</p>
+                        </div>
+                        <button id="clear-summary" type="button" class="text-sm text-sky-600 hover:text-sky-700">Reset</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700" id="summary-details"></div>
+                    <div id="summary-tags" class="flex flex-wrap gap-2"></div>
+                    <div id="summary-team" class="space-y-2"></div>
+                    <div id="summary-integrations" class="space-y-2"></div>
+                </div>
+
+                <!-- Basic Information Section -->
+                <div id="basic-info-section" class="bg-white rounded-xl border border-gray-200 p-6 form-section">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-10 h-10 bg-navy/10 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-info-circle text-navy"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Basic Information</h3>
+                            <p class="text-sm text-gray-600">Set up the foundation of your project</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Project Name *</label>
+                            <input id="project-name" type="text" placeholder="Enter project name" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky/50 focus:border-sky focus:outline-none text-sm">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Project Description</label>
+                            <textarea id="project-description" placeholder="Describe the project background, goals, and objectives..." rows="4" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky/50 focus:border-sky focus:outline-none text-sm resize-none"></textarea>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Project Type</label>
+                                <select id="project-type" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky/50 focus:border-sky focus:outline-none text-sm">
+                                    <option>Select project type</option>
+                                    <option>Web Application</option>
+                                    <option>Mobile Application</option>
+                                    <option>API Development</option>
+                                    <option>Data Analysis</option>
+                                    <option>Machine Learning</option>
+                                    <option>Other</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Priority Level</label>
+                                <select id="project-priority" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky/50 focus:border-sky focus:outline-none text-sm">
+                                    <option>Select priority</option>
+                                    <option>High</option>
+                                    <option>Medium</option>
+                                    <option>Low</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline Section -->
+                <div id="timeline-section" class="bg-white rounded-xl border border-gray-200 p-6 form-section">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-10 h-10 bg-navy/10 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-calendar-days text-navy"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Timeline &amp; Milestones</h3>
+                            <p class="text-sm text-gray-600">Define project schedule and key milestones</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                            <input id="project-start-date" type="date" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky/50 focus:border-sky focus:outline-none text-sm">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Target End Date</label>
+                            <input id="project-end-date" type="date" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky/50 focus:border-sky focus:outline-none text-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team & Stakeholders Section -->
+                <div id="team-section" class="bg-white rounded-xl border border-gray-200 p-6 form-section">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-10 h-10 bg-navy/10 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-users text-navy"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Team &amp; Stakeholders</h3>
+                            <p class="text-sm text-gray-600">Assign team members and stakeholders</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Project Owner</label>
+                            <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
+                                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="Owner" class="w-8 h-8 rounded-full">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">John Smith</p>
+                                    <p class="text-xs text-gray-500">Product Owner</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Team Members</label>
+                            <div id="team-member-list" class="space-y-2 text-sm text-gray-500 bg-gray-50 border border-dashed border-gray-200 rounded-xl p-4">
+                                <p class="text-center">No team members added yet</p>
+                            </div>
+                            <button id="add-team-member-button" type="button" class="mt-3 w-full flex items-center justify-center p-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-all">
+                                <i class="fa-solid fa-plus mr-2"></i>
+                                Add Team Member
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tags & Categories -->
+                <div id="tags-section" class="bg-white rounded-xl border border-gray-200 p-6 form-section">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-10 h-10 bg-navy/10 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-tags text-navy"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Tags &amp; Categories</h3>
+                            <p class="text-sm text-gray-600">Organize your project with tags and categories</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+                            <div class="space-y-3">
+                                <input id="project-tags" type="text" placeholder="Type a tag and press Enter" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky/50 focus:border-sky focus:outline-none text-sm">
+                                <div id="tag-list" class="flex flex-wrap gap-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Right Panel - Integrations -->
+    <aside id="right-panel" class="lg:w-[300px] w-full bg-gray-50 border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col flex-shrink-0 order-3 lg:order-none min-h-0 lg:max-h-screen lg:overflow-hidden">
+        <div class="h-16 flex items-center px-4 border-b border-gray-200">
+            <h3 class="font-semibold text-gray-800">Integrations</h3>
+        </div>
+        
+        <div id="integrations-content" class="flex-1 p-4 space-y-4 min-h-0 lg:overflow-y-auto">
+            
+            <!-- Available Integrations -->
+            <div class="bg-white rounded-xl p-4 border border-gray-200">
+                <h4 class="font-semibold text-gray-800 mb-3">Available Sources</h4>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fa-brands fa-jira text-blue-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-800">Jira</p>
+                                <p class="text-xs text-gray-500">Project management</p>
+                            </div>
+                        </div>
+                        <button class="connect-button px-3 py-1 bg-navy text-white rounded-lg text-xs hover:bg-navy/90 transition-all" data-source="Jira" data-description="Project management" data-icon="fa-brands fa-jira" data-color="bg-blue-100" data-iconcolor="text-blue-600">
+                            Connect
+                        </button>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i class="fa-brands fa-github text-purple-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-800">GitHub</p>
+                                <p class="text-xs text-gray-500">Code repository</p>
+                            </div>
+                        </div>
+                        <button class="connect-button px-3 py-1 bg-navy text-white rounded-lg text-xs hover:bg-navy/90 transition-all" data-source="GitHub" data-description="Code repository" data-icon="fa-brands fa-github" data-color="bg-purple-100" data-iconcolor="text-purple-600">
+                            Connect
+                        </button>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                                <i class="fa-brands fa-confluence text-orange-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-800">Confluence</p>
+                                <p class="text-xs text-gray-500">Documentation</p>
+                            </div>
+                        </div>
+                        <button class="connect-button px-3 py-1 bg-navy text-white rounded-lg text-xs hover:bg-navy/90 transition-all" data-source="Confluence" data-description="Documentation" data-icon="fa-brands fa-confluence" data-color="bg-orange-100" data-iconcolor="text-orange-600">
+                            Connect
+                        </button>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fa-brands fa-slack text-green-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-800">Slack</p>
+                                <p class="text-xs text-gray-500">Team communication</p>
+                            </div>
+                        </div>
+                        <button class="connect-button px-3 py-1 bg-navy text-white rounded-lg text-xs hover:bg-navy/90 transition-all" data-source="Slack" data-description="Team communication" data-icon="fa-brands fa-slack" data-color="bg-green-100" data-iconcolor="text-green-600">
+                            Connect
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Connected Sources -->
+            <div class="bg-white rounded-xl p-4 border border-gray-200">
+                <h4 class="font-semibold text-gray-800 mb-3">Connected Sources</h4>
+                <div id="connected-sources-empty" class="text-center py-8">
+                    <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fa-solid fa-link text-gray-400 text-lg"></i>
+                    </div>
+                    <p class="text-sm text-gray-500">No sources connected yet</p>
+                    <p class="text-xs text-gray-400 mt-1">Connect sources above to get started</p>
+                </div>
+                <div id="connected-sources-list" class="space-y-3 hidden"></div>
+            </div>
+            
+            <!-- Project Templates -->
+            <div class="bg-white rounded-xl p-4 border border-gray-200">
+                <h4 class="font-semibold text-gray-800 mb-3">Quick Templates</h4>
+                <div class="space-y-2">
+                    <button class="template-button w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm transition-all" data-template="web">
+                        <i class="fa-solid fa-globe text-navy mr-2"></i>
+                        Web Application
+                    </button>
+                    <button class="template-button w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm transition-all" data-template="mobile">
+                        <i class="fa-solid fa-mobile-screen text-navy mr-2"></i>
+                        Mobile App
+                    </button>
+                    <button class="template-button w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm transition-all" data-template="api">
+                        <i class="fa-solid fa-code text-navy mr-2"></i>
+                        API Project
+                    </button>
+                </div>
+            </div>
+            
+        </div>
+    </aside>
+
+    <div id="sidebar-backdrop" aria-hidden="true"></div>
+
+</div>
+
+<div id="team-member-modal" class="hidden fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-40 items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800">Add Team Member</h3>
+                <p class="text-sm text-gray-500">Provide the teammate's details to include them in the project.</p>
+            </div>
+            <button id="close-team-member-modal" class="text-gray-400 hover:text-gray-600" aria-label="Close add team member dialog">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="space-y-3">
+            <div>
+                <label for="team-member-name" class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                <input id="team-member-name" type="text" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky/50 focus:border-sky focus:outline-none text-sm" placeholder="E.g. Jane Doe">
+            </div>
+            <div>
+                <label for="team-member-role" class="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+                <input id="team-member-role" type="text" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky/50 focus:border-sky focus:outline-none text-sm" placeholder="E.g. UX Designer">
+            </div>
+            <div>
+                <label for="team-member-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input id="team-member-email" type="email" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky/50 focus:border-sky focus:outline-none text-sm" placeholder="name@example.com">
+            </div>
+        </div>
+        <div class="flex justify-end space-x-3 pt-2">
+            <button id="cancel-team-member" class="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl text-sm">Cancel</button>
+            <button id="save-team-member" class="px-4 py-2 bg-navy text-white rounded-xl text-sm hover:bg-navy/90">Add Member</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const PAGE_KEY = 'new-project';
+    let initialized = false;
+
+    const init = () => {
+        if (initialized) {
+            return;
+        }
+
+            const notificationContainer = document.getElementById('notification-container');
+            if (!notificationContainer) {
+                return;
+            }
+
+            initialized = true;
+
+
+            const showNotification = (message, type = 'info') => {
+                const palette = {
+                    info: 'bg-sky-100 text-sky-800 border-sky-200',
+                    success: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                    error: 'bg-rose-100 text-rose-800 border-rose-200',
+                    warning: 'bg-amber-100 text-amber-800 border-amber-200'
+                };
+
+                const note = document.createElement('div');
+                note.className = `min-w-[260px] max-w-sm border px-4 py-3 rounded-xl shadow-md flex items-start space-x-3 animate-slide-in ${palette[type] || palette.info}`;
+
+                const icon = document.createElement('i');
+                const icons = {
+                    info: 'fa-solid fa-circle-info',
+                    success: 'fa-solid fa-circle-check',
+                    error: 'fa-solid fa-triangle-exclamation',
+                    warning: 'fa-solid fa-circle-exclamation'
+                };
+                icon.className = `${icons[type] || icons.info} mt-1`;
+
+                const text = document.createElement('span');
+                text.textContent = message;
+                text.className = 'text-sm flex-1';
+
+                const close = document.createElement('button');
+                close.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                close.className = 'text-xs text-inherit hover:text-gray-900';
+                close.addEventListener('click', () => note.remove());
+
+                note.append(icon, text, close);
+                notificationContainer.appendChild(note);
+
+                setTimeout(() => {
+                    note.classList.add('opacity-0', 'translate-y-2');
+                    setTimeout(() => note.remove(), 200);
+                }, 4500);
+            };
+
+            const navigateToTerminology = () => {
+                const navigator = window.AIAssistant?.navigation;
+                if (navigator && typeof navigator.go === "function") {
+                    navigator.go('terminology.html');
+                    return;
+                }
+                window.location.href = 'terminology.html';
+            };
+
+            const getProjectFolderManager = () => window.AIAssistant?.projectFolders || null;
+
+            const addProjectFolderToSidebar = async (name) => {
+                const manager = getProjectFolderManager();
+                if (!manager || typeof manager.addFolder !== 'function') {
+                    return;
+                }
+
+                const { folder, created } = manager.addFolder({ name });
+                if (!folder) {
+                    return;
+                }
+
+                if (created) {
+                    showNotification(`"${folder.name}" folder added to your sidebar.`, 'success');
+                } else {
+                    showNotification(`"${folder.name}" is already in your sidebar.`, 'info');
+                }
+
+                const sidebar = await (typeof manager.waitForSidebar === 'function' ? manager.waitForSidebar() : Promise.resolve(null));
+                if (sidebar && typeof sidebar.highlight === 'function') {
+                    sidebar.highlight(folder.id);
+                }
+            };
+
+            document.getElementById('back-button').addEventListener('click', navigateToTerminology);
+            document.getElementById('cancel-button').addEventListener('click', navigateToTerminology);
+
+            const teamMembers = [];
+            const tags = [];
+            const connectedIntegrations = new Map();
+
+            const projectNameInput = document.getElementById('project-name');
+            const projectDescriptionInput = document.getElementById('project-description');
+            const projectTypeSelect = document.getElementById('project-type');
+            const projectPrioritySelect = document.getElementById('project-priority');
+            const projectStartInput = document.getElementById('project-start-date');
+            const projectEndInput = document.getElementById('project-end-date');
+            const tagInput = document.getElementById('project-tags');
+            const tagList = document.getElementById('tag-list');
+            const teamMemberList = document.getElementById('team-member-list');
+            const projectSummary = document.getElementById('project-summary');
+            const summaryDetails = document.getElementById('summary-details');
+            const summaryTags = document.getElementById('summary-tags');
+            const summaryTeam = document.getElementById('summary-team');
+            const summaryIntegrations = document.getElementById('summary-integrations');
+            const clearSummaryButton = document.getElementById('clear-summary');
+
+            const teamMemberModal = document.getElementById('team-member-modal');
+            const teamMemberNameInput = document.getElementById('team-member-name');
+            const teamMemberRoleInput = document.getElementById('team-member-role');
+            const teamMemberEmailInput = document.getElementById('team-member-email');
+
+            const connectedSourcesList = document.getElementById('connected-sources-list');
+            const connectedSourcesEmptyState = document.getElementById('connected-sources-empty');
+
+            const resetTeamMemberModal = () => {
+                teamMemberNameInput.value = '';
+                teamMemberRoleInput.value = '';
+                teamMemberEmailInput.value = '';
+            };
+
+            const openTeamMemberModal = () => {
+                resetTeamMemberModal();
+                teamMemberModal.classList.remove('hidden');
+                teamMemberModal.classList.add('flex');
+                setTimeout(() => teamMemberNameInput.focus(), 50);
+            };
+
+            const closeTeamMemberModal = () => {
+                teamMemberModal.classList.add('hidden');
+                teamMemberModal.classList.remove('flex');
+            };
+
+            const renderTeamMembers = () => {
+                teamMemberList.innerHTML = '';
+
+                if (!teamMembers.length) {
+                    const empty = document.createElement('p');
+                    empty.className = 'text-center text-sm text-gray-500';
+                    empty.textContent = 'No team members added yet';
+                    teamMemberList.appendChild(empty);
+                    return;
+                }
+
+                teamMembers.forEach((member, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center justify-between bg-white border border-gray-200 rounded-xl px-3 py-2';
+
+                    const info = document.createElement('div');
+                    info.className = 'flex flex-col';
+
+                    const name = document.createElement('span');
+                    name.className = 'font-medium text-sm text-gray-800';
+                    name.textContent = member.name;
+
+                    const role = document.createElement('span');
+                    role.className = 'text-xs text-gray-500';
+                    role.textContent = member.role + (member.email ? ` • ${member.email}` : '');
+
+                    info.append(name, role);
+
+                    const remove = document.createElement('button');
+                    remove.className = 'text-xs text-rose-600 hover:text-rose-700 flex items-center space-x-1';
+                    remove.innerHTML = '<i class="fa-solid fa-xmark"></i><span>Remove</span>';
+                    remove.addEventListener('click', () => {
+                        teamMembers.splice(index, 1);
+                        renderTeamMembers();
+                        showNotification(`${member.name} removed from the team.`, 'warning');
+                    });
+
+                    row.append(info, remove);
+                    teamMemberList.appendChild(row);
+                });
+            };
+
+            const renderTags = () => {
+                tagList.innerHTML = '';
+
+                tags.forEach(tag => {
+                    const pill = document.createElement('span');
+                    pill.className = 'inline-flex items-center space-x-2 bg-sky-100 text-sky-800 px-3 py-1 rounded-full text-xs font-medium';
+                    const text = document.createElement('span');
+                    text.textContent = tag;
+                    const remove = document.createElement('button');
+                    remove.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                    remove.className = 'text-[10px] hover:text-sky-900';
+                    remove.addEventListener('click', () => {
+                        const index = tags.indexOf(tag);
+                        if (index >= 0) {
+                            tags.splice(index, 1);
+                            renderTags();
+                        }
+                    });
+
+                    pill.append(text, remove);
+                    tagList.appendChild(pill);
+                });
+            };
+
+            const upsertTag = value => {
+                const cleaned = value.trim();
+                if (!cleaned) {
+                    return;
+                }
+
+                if (tags.some(tag => tag.toLowerCase() === cleaned.toLowerCase())) {
+                    showNotification('This tag has already been added.', 'warning');
+                    return;
+                }
+
+                tags.push(cleaned);
+                renderTags();
+                showNotification(`Tag "${cleaned}" added.`, 'success');
+            };
+
+            tagInput.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ',') {
+                    event.preventDefault();
+                    upsertTag(tagInput.value);
+                    tagInput.value = '';
+                }
+            });
+
+            tagInput.addEventListener('blur', () => {
+                if (tagInput.value.trim()) {
+                    upsertTag(tagInput.value);
+                    tagInput.value = '';
+                }
+            });
+
+            document.getElementById('add-team-member-button').addEventListener('click', openTeamMemberModal);
+            document.getElementById('cancel-team-member').addEventListener('click', event => {
+                event.preventDefault();
+                closeTeamMemberModal();
+            });
+            document.getElementById('close-team-member-modal').addEventListener('click', closeTeamMemberModal);
+            teamMemberModal.addEventListener('click', event => {
+                if (event.target === teamMemberModal) {
+                    closeTeamMemberModal();
+                }
+            });
+
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape' && !teamMemberModal.classList.contains('hidden')) {
+                    closeTeamMemberModal();
+                }
+            });
+
+            document.getElementById('save-team-member').addEventListener('click', event => {
+                event.preventDefault();
+                const name = teamMemberNameInput.value.trim();
+                const role = teamMemberRoleInput.value.trim();
+                const email = teamMemberEmailInput.value.trim();
+
+                if (!name || !role) {
+                    showNotification('Name and role are required for each team member.', 'error');
+                    return;
+                }
+
+                teamMembers.push({ name, role, email });
+                renderTeamMembers();
+                closeTeamMemberModal();
+                showNotification(`${name} added to the project team.`, 'success');
+            });
+
+            const updateConnectedSourcesUI = () => {
+                connectedSourcesList.innerHTML = '';
+
+                if (!connectedIntegrations.size) {
+                    connectedSourcesEmptyState.classList.remove('hidden');
+                    connectedSourcesList.classList.add('hidden');
+                    return;
+                }
+
+                connectedSourcesEmptyState.classList.add('hidden');
+                connectedSourcesList.classList.remove('hidden');
+
+                connectedIntegrations.forEach(data => {
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center justify-between border border-gray-200 rounded-xl px-3 py-2 bg-white';
+                    row.dataset.source = data.source;
+
+                    const info = document.createElement('div');
+                    info.className = 'flex items-center space-x-3';
+
+                    const iconWrapper = document.createElement('div');
+                    iconWrapper.className = `w-8 h-8 ${data.color} rounded-lg flex items-center justify-center`;
+                    iconWrapper.innerHTML = `<i class="${data.icon} ${data.iconColor} text-sm"></i>`;
+
+                    const textWrapper = document.createElement('div');
+                    textWrapper.className = 'flex flex-col';
+
+                    const title = document.createElement('span');
+                    title.className = 'text-sm font-medium text-gray-800';
+                    title.textContent = data.source;
+
+                    const desc = document.createElement('span');
+                    desc.className = 'text-xs text-gray-500';
+                    desc.textContent = data.description;
+
+                    textWrapper.append(title, desc);
+                    info.append(iconWrapper, textWrapper);
+
+                    const disconnect = document.createElement('button');
+                    disconnect.className = 'text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-3 py-1 rounded-lg';
+                    disconnect.textContent = 'Disconnect';
+                    disconnect.addEventListener('click', () => {
+                        connectedIntegrations.delete(data.source);
+                        const connectButton = document.querySelector(`.connect-button[data-source="${data.source}"]`);
+                        if (connectButton) {
+                            connectButton.disabled = false;
+                            connectButton.textContent = 'Connect';
+                            connectButton.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+                            connectButton.classList.add('bg-navy', 'hover:bg-navy/90');
+                        }
+                        updateConnectedSourcesUI();
+                        showNotification(`${data.source} disconnected.`, 'warning');
+                    });
+
+                    row.append(info, disconnect);
+                    connectedSourcesList.appendChild(row);
+                });
+            };
+
+            document.querySelectorAll('.connect-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const source = button.dataset.source;
+
+                    if (connectedIntegrations.has(source)) {
+                        showNotification(`${source} is already connected.`, 'info');
+                        return;
+                    }
+
+                    const integrationData = {
+                        source,
+                        description: button.dataset.description,
+                        icon: button.dataset.icon,
+                        color: button.dataset.color,
+                        iconColor: button.dataset.iconcolor
+                    };
+
+                    connectedIntegrations.set(source, integrationData);
+                    button.disabled = true;
+                    button.textContent = 'Connected';
+                    button.classList.remove('bg-navy', 'hover:bg-navy/90');
+                    button.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+                    updateConnectedSourcesUI();
+                    showNotification(`${source} successfully connected.`, 'success');
+                });
+            });
+
+            const templates = {
+                web: {
+                    name: 'Website Launch Project',
+                    description: 'Coordinate the launch of the new marketing website including content, analytics, and QA.',
+                    type: 'Web Application',
+                    priority: 'High',
+                    tags: ['Marketing', 'Frontend', 'QA'],
+                    durationInDays: 30
+                },
+                mobile: {
+                    name: 'Mobile App Sprint',
+                    description: 'Deliver the MVP for the new mobile experience focusing on onboarding and engagement.',
+                    type: 'Mobile Application',
+                    priority: 'Medium',
+                    tags: ['iOS', 'Android', 'MVP'],
+                    durationInDays: 21
+                },
+                api: {
+                    name: 'API Platform Initiative',
+                    description: 'Design and implement core endpoints with authentication, monitoring, and documentation.',
+                    type: 'API Development',
+                    priority: 'High',
+                    tags: ['Backend', 'Security', 'Docs'],
+                    durationInDays: 45
+                }
+            };
+
+            const setSelectValue = (select, value) => {
+                Array.from(select.options).forEach(option => {
+                    if (option.text === value) {
+                        select.value = option.value;
+                    }
+                });
+            };
+
+            const formatDate = (date) => date.toISOString().split('T')[0];
+
+            document.querySelectorAll('.template-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const template = templates[button.dataset.template];
+                    if (!template) {
+                        return;
+                    }
+
+                    projectNameInput.value = template.name;
+                    projectDescriptionInput.value = template.description;
+                    setSelectValue(projectTypeSelect, template.type);
+                    setSelectValue(projectPrioritySelect, template.priority);
+
+                    const startDate = new Date();
+                    const endDate = new Date();
+                    endDate.setDate(startDate.getDate() + template.durationInDays);
+                    projectStartInput.value = formatDate(startDate);
+                    projectEndInput.value = formatDate(endDate);
+
+                    tags.splice(0, tags.length, ...template.tags);
+                    renderTags();
+
+                    showNotification(`${template.name} template applied.`, 'info');
+                });
+            });
+
+            const renderSummaryList = (container, title, items, emptyMessage) => {
+                container.innerHTML = '';
+
+                const heading = document.createElement('p');
+                heading.className = 'text-sm font-semibold text-gray-700';
+                heading.textContent = title;
+                container.appendChild(heading);
+
+                if (!items.length) {
+                    const empty = document.createElement('p');
+                    empty.className = 'text-xs text-gray-500';
+                    empty.textContent = emptyMessage;
+                    container.appendChild(empty);
+                    return;
+                }
+
+                items.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs';
+
+                    const left = document.createElement('span');
+                    left.className = 'font-medium text-gray-700';
+                    left.textContent = item.title;
+
+                    const right = document.createElement('span');
+                    right.className = 'text-gray-500';
+                    right.textContent = item.subtitle;
+
+                    row.append(left, right);
+                    container.appendChild(row);
+                });
+            };
+
+            const createSummaryDetail = (label, value) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex flex-col space-y-1';
+
+                const heading = document.createElement('span');
+                heading.className = 'text-xs uppercase tracking-wide text-gray-400 font-semibold';
+                heading.textContent = label;
+
+                const content = document.createElement('span');
+                content.className = 'text-sm text-gray-800';
+                content.textContent = value || '—';
+
+                wrapper.append(heading, content);
+                return wrapper;
+            };
+
+            const createProjectSummary = () => {
+                const name = projectNameInput.value.trim();
+                const startDate = projectStartInput.value;
+                const endDate = projectEndInput.value;
+
+                const errors = [];
+                if (!name) {
+                    errors.push('Project name is required.');
+                }
+                if (startDate && endDate && startDate > endDate) {
+                    errors.push('Start date cannot be later than the end date.');
+                }
+
+                if (errors.length) {
+                    errors.forEach(error => showNotification(error, 'error'));
+                    return;
+                }
+
+                summaryDetails.innerHTML = '';
+                summaryDetails.append(
+                    createSummaryDetail('Project Name', name),
+                    createSummaryDetail('Project Type', projectTypeSelect.value),
+                    createSummaryDetail('Priority', projectPrioritySelect.value),
+                    createSummaryDetail('Start Date', startDate || 'Not set'),
+                    createSummaryDetail('End Date', endDate || 'Not set'),
+                    createSummaryDetail('Description', projectDescriptionInput.value.trim() || 'No description provided')
+                );
+
+                summaryTags.innerHTML = '';
+                if (tags.length) {
+                    const heading = document.createElement('p');
+                    heading.className = 'text-sm font-semibold text-gray-700';
+                    heading.textContent = 'Tags';
+                    summaryTags.appendChild(heading);
+
+                    const tagWrapper = document.createElement('div');
+                    tagWrapper.className = 'flex flex-wrap gap-2';
+                    tags.forEach(tag => {
+                        const pill = document.createElement('span');
+                        pill.className = 'bg-sky-100 text-sky-800 px-3 py-1 rounded-full text-xs font-medium';
+                        pill.textContent = tag;
+                        tagWrapper.appendChild(pill);
+                    });
+                    summaryTags.appendChild(tagWrapper);
+                }
+
+                renderSummaryList(
+                    summaryTeam,
+                    'Team Members',
+                    teamMembers.map(member => ({ title: member.name, subtitle: member.role })),
+                    'No team members have been added yet.'
+                );
+
+                renderSummaryList(
+                    summaryIntegrations,
+                    'Connected Integrations',
+                    Array.from(connectedIntegrations.values()).map(integration => ({
+                        title: integration.source,
+                        subtitle: integration.description
+                    })),
+                    'No integrations connected yet.'
+                );
+
+                projectSummary.classList.remove('hidden');
+                showNotification('Project summary generated. Review and confirm!', 'success');
+                void addProjectFolderToSidebar(name);
+                projectSummary.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            };
+
+            document.getElementById('create-project-button').addEventListener('click', event => {
+                event.preventDefault();
+                createProjectSummary();
+            });
+
+            clearSummaryButton.addEventListener('click', () => {
+                projectSummary.classList.add('hidden');
+                showNotification('Project summary hidden. Update details and generate again when ready.', 'info');
+            });
+
+            renderTeamMembers();
+            renderTags();
+            updateConnectedSourcesUI();
+    };
+
+    const resetAndInit = () => {
+        initialized = false;
+        init();
+    };
+
+    const handleInitEvent = (event) => {
+        const targetPage = event?.detail?.page;
+        if (targetPage && targetPage !== PAGE_KEY) {
+            return;
+        }
+        resetAndInit();
+    };
+
+    const attach = () => {
+        document.addEventListener('ai-assistant:init-page', handleInitEvent);
+    };
+
+    const detach = () => {
+        document.removeEventListener('ai-assistant:init-page', handleInitEvent);
+        initialized = false;
+    };
+
+    window.AIAssistant = window.AIAssistant || {};
+    window.AIAssistant.pages = window.AIAssistant.pages || {};
+    const previous = window.AIAssistant.pages[PAGE_KEY];
+    if (previous && typeof previous.teardown === 'function') {
+        previous.teardown();
+    }
+
+    window.AIAssistant.pages[PAGE_KEY] = {
+        init: resetAndInit,
+        teardown: detach,
+    };
+
+    attach();
+
+    const shouldAutoInit = !window.AIAssistant?.navigation?.isNavigating;
+    if (shouldAutoInit) {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init, { once: true });
+        } else {
+            init();
+        }
+    }
+})();
+    </script>
+
+</body>
+</html>

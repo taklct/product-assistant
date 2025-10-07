@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAMM Rebate Enhancement · AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="scripts/sidebar.js" defer></script>
+    <script src="scripts/sidebar-favorites.js" defer></script>
+    <script src="scripts/sidebar-projects.js" defer></script>
+    <script src="scripts/sidebar-chats.js" defer></script>
+    <script src="scripts/sidebar-init.js" defer></script>
+    <script src="scripts/spa-navigation.js" defer></script>
+    <script src="scripts/topbar.js" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap">
+    <style>
+        ::-webkit-scrollbar { display: none; }
+        body { font-family: 'Inter', sans-serif; }
+        .nav-item { transition: all 0.2s ease-in-out; }
+        .nav-item:hover { transform: translateX(2px); }
+        .control-btn { transition: all 0.2s ease-in-out; }
+        .control-btn:hover { transform: scale(1.02); }
+        .chat-card { transition: all 0.3s ease-in-out; }
+        .chat-card:hover { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); transform: translateY(-1px); }
+        .file-item { transition: all 0.2s ease-in-out; }
+        .file-item:hover { background-color: rgba(9, 8, 195, 0.05); }
+        #sidebar { transition: width 0.3s ease, transform 0.3s ease; }
+        @media (min-width: 1024px) {
+            #sidebar { height: 100vh; }
+        }
+        #sidebar.collapsed { width: 80px; }
+        #sidebar.collapsed .sidebar-collapsible { display: none !important; }
+        #sidebar.collapsed .sidebar-icon-only {
+            justify-content: center !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        #sidebar.collapsed .sidebar-icon-only > :not(:first-child) {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+        #sidebar.collapsed .sidebar-icon-only .fa-solid,
+        #sidebar.collapsed .sidebar-icon-only .fa-regular { margin-right: 0; }
+        #sidebar.collapsed .control-btn i { margin-right: 0; }
+        #sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 40;
+            visibility: hidden;
+        }
+        #sidebar-backdrop.visible {
+            opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
+        }
+        body.sidebar-mobile-open { overflow: hidden; }
+        @media (max-width: 1024px) {
+            #sidebar {
+                position: fixed;
+                inset: 0 auto 0 0;
+                width: 280px;
+                transform: translateX(-100%);
+                box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+                z-index: 50;
+            }
+            #sidebar.mobile-open { transform: translateX(0); }
+            #sidebar.collapsed { width: 280px; }
+        }
+        #chat-messages::-webkit-scrollbar { width: 6px; }
+        #chat-messages::-webkit-scrollbar-thumb { background-color: rgba(9, 8, 195, 0.35); border-radius: 9999px; }
+        .message-bubble { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .message-bubble:hover { transform: translateY(-1px); box-shadow: 0 10px 25px rgba(15, 23, 42, 0.1); }
+        .attachment-chip { transition: background-color 0.2s ease; }
+        .attachment-chip:hover { background-color: rgba(9, 8, 195, 0.1); }
+        #project-interface.chat-view-active #chat-records {
+            padding: 0;
+            overflow: hidden;
+        }
+        #project-interface.chat-view-active #chat-records > :not(#chat-panel) {
+            display: none;
+        }
+        #project-interface.chat-view-active #chat-panel {
+            display: flex;
+            flex-direction: column;
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+            border-bottom: none;
+            height: 100%;
+            max-height: none;
+        }
+        #project-interface.chat-view-active #chat-messages {
+            flex: 1;
+            max-height: none;
+        }
+        #project-interface.chat-view-active #chat-composer {
+            border-top: 1px solid rgba(148, 163, 184, 0.4);
+        }
+        @media (max-width: 1023px) {
+            #project-interface.chat-view-active #right-panel {
+                display: none;
+            }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif']
+                    },
+                    colors: {
+                        navy: '#0908c3',
+                        sky: '#87CEEB'
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="bg-gray-50" data-active-sidebar-link="project-launch-roadmap">
+
+<div id="notification-container" class="fixed top-4 right-4 z-50 space-y-3"></div>
+
+<div id="project-interface" class="relative flex flex-col lg:flex-row lg:items-stretch lg:overflow-hidden min-h-screen lg:h-screen w-full bg-gray-50 text-gray-900 font-inter">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-[280px] bg-white border-r border-gray-200 flex flex-col shadow-sm transition-all duration-300 flex-shrink-0 min-h-0 lg:max-h-screen overflow-y-auto">
+        <!-- Header -->
+        <div id="sidebar-header" class="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+            <div class="flex items-center space-x-2 sidebar-icon-only">
+                <div class="w-9 h-9 bg-navy rounded-xl flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-robot text-white text-base"></i>
+                </div>
+                <h1 class="text-base font-semibold text-gray-800 sidebar-collapsible">AI Assistant</h1>
+            </div>
+            <button id="sidebar-toggle" class="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Collapse sidebar" aria-expanded="true">
+                <i class="fa-solid fa-chevron-left text-sm" data-icon-collapse></i>
+                <i class="fa-solid fa-chevron-right text-sm hidden" data-icon-expand></i>
+            </button>
+        </div>
+
+        <!-- New Chat Button -->
+        <div id="new-chat-section" class="px-3 py-2 space-y-2">
+            <button id="sidebar-new-chat" class="w-full flex items-center justify-center bg-navy text-white rounded-xl h-8 text-sm font-medium hover:bg-navy/90 shadow-md control-btn">
+                <i class="fa-solid fa-plus mr-2"></i> <span class="sidebar-collapsible">New Chat</span>
+            </button>
+        </div>
+
+        <!-- Dashboard Navigation -->
+        <div id="dashboard-nav" class="px-4 pb-2.5">
+            <div class="space-y-0.5">
+                <a href="dashboard.html" class="w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="dashboard">
+                    <i class="fa-solid fa-chart-line text-sm"></i>
+                    <span class="text-sm sidebar-collapsible">Dashboard</span>
+                </a>
+                <a href="terminology.html" class="w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="terminology">
+                    <i class="fa-solid fa-book text-sm"></i>
+                    <span class="text-sm sidebar-collapsible">Terminology</span>
+                </a>
+                <div class="space-y-1.5" data-favorites-section>
+                    <button type="button" class="w-full flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="favorites">
+                        <div class="flex items-center space-x-2.5 min-w-0 sidebar-icon-only">
+                            <i class="fa-solid fa-star text-sm"></i>
+                            <span class="text-sm sidebar-collapsible">Favorites</span>
+                        </div>
+                        <span class="hidden text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full sidebar-collapsible" data-favorites-count></span>
+                    </button>
+                    <div class="pl-9 pr-2 space-y-2 hidden sidebar-collapsible" data-favorites-view>
+                        <div class="text-xs font-semibold text-gray-500">Favorites</div>
+                        <div class="space-y-2 hidden" data-favorites-list></div>
+                        <div class="rounded-lg border border-dashed border-gray-300 p-3 text-xs text-gray-500" data-favorites-empty>
+                            <p class="font-medium text-gray-600">No favorites yet</p>
+                            <p class="mt-1">Use the favorite controls within each page to pin items here for quick access.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Project and Project Folders -->
+        <div id="project-section" class="px-4 pb-2.5" data-project-section>
+            <div class="flex items-center justify-between px-3 pb-1.5 sidebar-collapsible">
+                <span class="text-xs font-semibold tracking-wide text-gray-400 uppercase">Projects</span>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-projects-toggle aria-expanded="true">
+                    <span class="sr-only">Toggle project folders</span>
+                    <i class="fa-solid fa-chevron-down text-xs" data-projects-icon="expanded"></i>
+                    <i class="fa-solid fa-chevron-right text-xs hidden" data-projects-icon="collapsed"></i>
+                </button>
+            </div>
+            <div class="space-y-0.5" data-projects-content>
+                <a href="create-project.html" class="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 cursor-pointer nav-item" data-sidebar-link="new-project">
+                    <div class="flex items-center space-x-2.5 min-w-0 sidebar-icon-only">
+                        <i class="fa-solid fa-folder-plus text-sm"></i>
+                        <span class="text-sm sidebar-collapsible">New Project</span>
+                    </div>
+                </a>
+
+                <div data-project-folders class="space-y-0.5"></div>
+            </div>
+        </div>
+
+        <!-- Chat History -->
+        <nav id="chat-history" class="flex-1 overflow-y-auto px-4 space-y-1" data-chats-section>
+            <div class="flex items-center justify-between px-3 pb-1.5 sidebar-collapsible">
+                <span class="text-xs font-semibold tracking-wide text-gray-400 uppercase">Chats</span>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-chats-toggle aria-expanded="true">
+                    <span class="sr-only">Toggle chats</span>
+                    <i class="fa-solid fa-chevron-down text-xs" data-chats-icon="expanded"></i>
+                    <i class="fa-solid fa-chevron-right text-xs hidden" data-chats-icon="collapsed"></i>
+                </button>
+            </div>
+            <div class="space-y-0.5" data-chats-content>
+                <div data-chat-history class="space-y-0.5"></div>
+            </div>
+        </nav>
+
+        <!-- User Profile -->
+        <div id="user-profile" class="border-t border-gray-200 p-2">
+            <div class="flex items-center space-x-2 px-2.5 py-1 rounded-xl hover:bg-gray-50 cursor-pointer nav-item sidebar-icon-only">
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-8 h-8 rounded-full">
+                <div class="flex-1 min-w-0 sidebar-collapsible">
+                    <div class="flex items-center space-x-1.5">
+                        <p class="text-sm font-medium text-gray-800 truncate">John Smith</p>
+                        <span class="inline-flex items-center justify-center w-2 h-2 rounded-full bg-green-500" role="status" aria-label="Online"></span>
+                    </div>
+                    <p class="text-xs text-gray-500">Product Owner</p>
+                </div>
+                <i class="fa-solid fa-gear text-gray-400 hover:text-gray-600 sidebar-collapsible"></i>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="flex-1 flex flex-col bg-white order-2 lg:order-none min-w-0 min-h-0 lg:max-h-screen lg:overflow-hidden">
+        <!-- Navigation Bar -->
+        <header id="header"
+            data-topbar
+            data-topbar-title="PAMM Rebate Enhancement"
+            data-topbar-title-id="project-main-title"
+            data-topbar-icon="fa-solid fa-folder"
+            data-topbar-icon-color="text-navy"
+            data-topbar-icon-bg="bg-navy/10">
+            <div data-topbar-leading class="flex items-center space-x-2">
+                <button id="mobile-sidebar-toggle" class="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Open sidebar">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+            <div data-topbar-actions>
+                <input id="add-files-input" type="file" class="hidden" multiple>
+                <button id="add-files-button" class="px-5 py-2.5 border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-full transition-all text-sm font-medium control-btn">
+                    <i class="fa-solid fa-paperclip mr-2"></i>Add files
+                </button>
+            </div>
+        </header>
+
+        <!-- Chat Records -->
+        <div id="chat-records" class="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0">
+            <div class="w-full max-w-5xl mx-auto space-y-6">
+                <!-- New Chat Input -->
+                <form id="new-chat-form" class="relative" autocomplete="off">
+                    <div id="new-chat-input-container" class="flex items-center w-full bg-white border border-gray-200 rounded-full shadow-sm p-3 pr-4">
+                        <i class="fa-solid fa-plus text-gray-500 mx-3 text-lg"></i>
+                        <input id="new-chat-input" type="text" placeholder="New chat in PAMM Rebate Enhancement" class="flex-1 bg-transparent text-base placeholder-gray-500 focus:outline-none" aria-label="Start a new chat">
+                        <div class="flex items-center space-x-3">
+                            <button type="button" id="microphone-button" class="text-gray-500 hover:text-gray-700" aria-pressed="false" aria-label="Toggle voice input">
+                                <i class="fa-solid fa-microphone text-lg"></i>
+                            </button>
+                            <button type="submit" id="create-chat-button" class="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200" aria-label="Create chat">
+                                <i class="fa-solid fa-arrow-up"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Chat History List -->
+                <div id="chat-list-container" class="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                    <div id="chat-empty-state" class="hidden px-6 py-16 text-center text-sm text-gray-500">
+                        No conversations yet. Start a new chat to get things going.
+                    </div>
+                    <div id="chat-list" class="divide-y divide-gray-200"></div>
+                </div>
+
+                <!-- Continue Chat Panel -->
+                <section id="chat-panel" class="hidden bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                    <div class="px-6 py-5 border-b border-gray-200 flex items-start justify-between">
+                        <div class="flex-1">
+                            <div id="chat-title-display" class="flex items-center gap-3">
+                                <h3 id="chat-panel-title" class="text-xl font-semibold text-gray-800">Chat title</h3>
+                                <button type="button" id="edit-chat-title-button" class="text-gray-400 hover:text-navy transition-colors" aria-label="Rename chat title">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                            </div>
+                            <form id="chat-title-edit-form" class="hidden mt-2 flex flex-col sm:flex-row sm:items-center gap-2" autocomplete="off">
+                                <label for="chat-title-input" class="sr-only">Chat title</label>
+                                <input id="chat-title-input" type="text" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-navy/50 focus:border-navy" placeholder="Chat title">
+                                <div class="flex items-center gap-2">
+                                    <button type="submit" class="px-4 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:bg-navy/90 transition-colors">Save</button>
+                                    <button type="button" id="cancel-chat-title-edit" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">Cancel</button>
+                                </div>
+                            </form>
+                            <p id="chat-panel-subtitle" class="text-sm text-gray-500 mt-1">Conversation details</p>
+                        </div>
+                        <button type="button" class="text-gray-500 hover:text-gray-700 transition-colors" data-close-panel aria-label="Close chat panel">
+                            <i class="fa-solid fa-xmark text-xl"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-between px-6 py-3 border-b border-gray-200 text-sm text-gray-500">
+                        <div class="flex items-center gap-3">
+                            <div id="chat-participants" class="flex -space-x-2"></div>
+                            <span id="chat-participant-summary"></span>
+                        </div>
+                        <span id="chat-last-updated" class="text-xs text-gray-400"></span>
+                    </div>
+                    <div id="chat-messages" class="px-6 py-6 space-y-6 bg-gray-50 max-h-[480px] overflow-y-auto"></div>
+                    <form id="chat-composer" class="px-6 py-4 border-t border-gray-200 bg-white" autocomplete="off">
+                        <div class="max-w-3xl mx-auto">
+                            <div id="attachment-preview" class="flex flex-wrap gap-2 mb-3 hidden"></div>
+                            <div class="relative">
+                                <div id="composer-drop-overlay" class="drop-overlay hidden absolute inset-0 rounded-3xl border-2 border-dashed border-navy/40 bg-white/80 flex items-center justify-center text-navy font-medium z-20">
+                                    Drop files to attach
+                                </div>
+                                <div id="composer-input-wrapper" class="relative flex items-center w-full bg-white border border-gray-200 rounded-full shadow-sm p-2 transition-all duration-200 focus-within:ring-2 focus-within:ring-navy/50">
+                                    <button type="button" id="composer-attachment-button" class="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-navy hover:bg-gray-100 rounded-full transition-all ml-2" aria-label="Add attachment">
+                                        <i class="fa-solid fa-plus text-lg"></i>
+                                    </button>
+                                    <textarea id="chat-message-input" rows="1" placeholder="Write a message..." class="flex-1 w-full p-2 bg-transparent border-none resize-none focus:ring-0 text-sm text-gray-800 placeholder-gray-500" aria-label="Message"></textarea>
+                                    <div class="flex items-center space-x-1 pr-2">
+                                        <button type="button" id="composer-voice-button" class="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-navy hover:bg-gray-100 rounded-full transition-all" aria-pressed="false" aria-label="Toggle voice input">
+                                            <i class="fa-solid fa-microphone text-lg"></i>
+                                        </button>
+                                        <button type="submit" id="send-message-button" class="w-10 h-10 flex items-center justify-center bg-gray-200 text-gray-600 rounded-full hover:bg-navy hover:text-white transition-all control-btn" aria-label="Send message">
+                                            <i class="fa-solid fa-arrow-up"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <div id="sidebar-backdrop" aria-hidden="true"></div>
+
+    <!-- Right Panel - Project Chats -->
+    <aside id="right-panel" class="lg:w-[320px] lg:max-w-[320px] w-full bg-gray-50 border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col flex-shrink-0 lg:flex-shrink-0 min-h-0 order-3 lg:order-none lg:max-h-screen lg:overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-200 bg-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold tracking-wide text-gray-400 uppercase">Project</p>
+                    <h3 id="project-chat-panel-title" class="font-semibold text-gray-800 text-lg">PAMM Rebate Enhancement</h3>
+                </div>
+                <button id="right-panel-new-chat" type="button" class="inline-flex items-center px-3 py-1.5 bg-navy text-white text-xs font-semibold rounded-lg shadow-sm hover:bg-navy/90 transition-colors">
+                    <i class="fa-solid fa-plus mr-2"></i>New Chat
+                </button>
+            </div>
+            <p id="project-chat-panel-subtitle" class="text-xs text-gray-500 mt-3">No chats linked to this project yet.</p>
+        </div>
+        <div class="border-b border-gray-200 bg-white/70">
+            <div id="project-chat-tabs" class="flex items-center gap-2 overflow-x-auto px-4 py-3"></div>
+        </div>
+        <div class="flex-1 min-h-0 lg:overflow-y-auto bg-gray-50">
+            <div class="p-4 space-y-3">
+                <div id="project-chat-empty-state" class="hidden px-4 py-10 text-center text-sm text-gray-500 bg-white border border-dashed border-gray-200 rounded-2xl">
+                    Select a project to see its chats.
+                </div>
+                <div id="project-chat-list-panel" class="space-y-2"></div>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<script>
+(function () {
+    const PAGE_KEY = 'project-launch-roadmap';
+    let initialized = false;
+    let refreshProjectFoldersHandler = null;
+
+    const init = () => {
+        if (initialized) {
+            return;
+        }
+
+            initialized = true;
+            const notificationContainer = document.getElementById('notification-container');
+            const sidebarNewChatButton = document.getElementById('sidebar-new-chat');
+            const addFilesButton = document.getElementById('add-files-button');
+            const addFilesInput = document.getElementById('add-files-input');
+            const newChatForm = document.getElementById('new-chat-form');
+            const newChatInput = document.getElementById('new-chat-input');
+            const microphoneButton = document.getElementById('microphone-button');
+            const composerAttachmentButton = document.getElementById('composer-attachment-button');
+            const composerVoiceButton = document.getElementById('composer-voice-button');
+            const chatList = document.getElementById('chat-list');
+            const chatEmptyState = document.getElementById('chat-empty-state');
+            const chatPanel = document.getElementById('chat-panel');
+            const projectInterface = document.getElementById('project-interface');
+            const chatPanelTitle = document.getElementById('chat-panel-title');
+            const chatPanelSubtitle = document.getElementById('chat-panel-subtitle');
+            const chatTitleDisplay = document.getElementById('chat-title-display');
+            const chatTitleEditButton = document.getElementById('edit-chat-title-button');
+            const chatTitleEditForm = document.getElementById('chat-title-edit-form');
+            const chatTitleInput = document.getElementById('chat-title-input');
+            const chatTitleEditCancel = document.getElementById('cancel-chat-title-edit');
+            const chatParticipants = document.getElementById('chat-participants');
+            const chatParticipantSummary = document.getElementById('chat-participant-summary');
+            const chatLastUpdated = document.getElementById('chat-last-updated');
+            const chatMessages = document.getElementById('chat-messages');
+            const chatComposer = document.getElementById('chat-composer');
+            const chatMessageInput = document.getElementById('chat-message-input');
+            const attachmentPreview = document.getElementById('attachment-preview');
+            const closePanelButtons = chatPanel.querySelectorAll('[data-close-panel]');
+            const projectMainTitle = document.getElementById('project-main-title');
+            const projectChatPanelTitle = document.getElementById('project-chat-panel-title');
+            const projectChatPanelSubtitle = document.getElementById('project-chat-panel-subtitle');
+            const projectChatTabs = document.getElementById('project-chat-tabs');
+            const projectChatListPanel = document.getElementById('project-chat-list-panel');
+            const projectChatEmptyState = document.getElementById('project-chat-empty-state');
+            const rightPanelNewChatButton = document.getElementById('right-panel-new-chat');
+            const createChatButton = document.getElementById('create-chat-button');
+
+            if (!notificationContainer || !newChatForm || !newChatInput || !chatList || !chatEmptyState || !chatPanel || !chatPanelTitle || !chatPanelSubtitle || !chatTitleDisplay || !chatTitleEditButton || !chatTitleEditForm || !chatTitleInput || !chatTitleEditCancel || !chatParticipants || !chatParticipantSummary || !chatLastUpdated || !chatMessages || !chatComposer || !chatMessageInput || !attachmentPreview || !projectChatPanelTitle || !projectChatPanelSubtitle || !projectChatTabs || !projectChatListPanel || !projectChatEmptyState || !rightPanelNewChatButton || !createChatButton) {
+                return;
+            }
+
+            const state = {
+                chats: [],
+                activeChatId: null,
+                pendingAttachments: [],
+                recording: false,
+                messageSequence: 0,
+                renamingChatId: null,
+                projectFolders: [],
+                selectedProjectId: null,
+                defaultProjectName: projectMainTitle?.textContent?.trim() || 'Project'
+            };
+
+            const chatHistoryApi = window.AIAssistant?.chatHistory;
+
+            const updateRecordingUI = () => {
+                if (microphoneButton) {
+                    microphoneButton.setAttribute('aria-pressed', state.recording ? 'true' : 'false');
+                    microphoneButton.classList.toggle('text-navy', state.recording);
+                }
+
+                if (composerVoiceButton) {
+                    composerVoiceButton.setAttribute('aria-pressed', state.recording ? 'true' : 'false');
+                    composerVoiceButton.classList.toggle('text-navy', state.recording);
+                }
+            };
+
+            const getSelectedProject = () => state.projectFolders.find((entry) => entry.id === state.selectedProjectId) || null;
+
+            const ensureProjectFolders = () => {
+                const api = window.AIAssistant?.projectFolders;
+                const fromApi = api && typeof api.getAllFolders === 'function'
+                    ? api.getAllFolders()
+                    : [];
+
+                const unique = new Map();
+                fromApi.forEach((folder) => {
+                    if (folder && folder.id) {
+                        unique.set(folder.id, {
+                            id: folder.id,
+                            name: folder.name || folder.id,
+                            href: folder.href || null,
+                        });
+                    }
+                });
+
+                if (!unique.has(PAGE_KEY)) {
+                    unique.set(PAGE_KEY, {
+                        id: PAGE_KEY,
+                        name: state.defaultProjectName,
+                        href: null,
+                    });
+                }
+
+                state.projectFolders = Array.from(unique.values());
+
+                if (!state.projectFolders.some((folder) => folder.id === state.selectedProjectId)) {
+                    state.selectedProjectId = state.projectFolders.some((folder) => folder.id === PAGE_KEY)
+                        ? PAGE_KEY
+                        : state.projectFolders[0]?.id || null;
+                }
+            };
+
+            const getChatsForSelectedProject = () => {
+                const projectId = state.selectedProjectId;
+                if (!projectId) {
+                    return [];
+                }
+
+                if (projectId === PAGE_KEY) {
+                    return state.chats.slice();
+                }
+
+                if (chatHistoryApi && typeof chatHistoryApi.getByProject === 'function') {
+                    return chatHistoryApi.getByProject(projectId);
+                }
+
+                return [];
+            };
+
+            const updateProjectContext = () => {
+                const selectedProject = getSelectedProject();
+                const projectName = selectedProject?.name || state.defaultProjectName;
+                const isCurrentProject = state.selectedProjectId === PAGE_KEY;
+
+                if (projectChatPanelTitle) {
+                    projectChatPanelTitle.textContent = projectName;
+                }
+
+                if (projectMainTitle) {
+                    projectMainTitle.textContent = isCurrentProject ? projectName : state.defaultProjectName;
+                }
+
+                if (newChatInput) {
+                    newChatInput.placeholder = isCurrentProject
+                        ? `New chat in ${projectName}`
+                        : `Chats for ${projectName} are view only`;
+                    newChatInput.disabled = !isCurrentProject;
+                    newChatInput.classList.toggle('opacity-60', !isCurrentProject);
+                    newChatInput.classList.toggle('cursor-not-allowed', !isCurrentProject);
+                }
+
+                if (createChatButton) {
+                    createChatButton.disabled = !isCurrentProject;
+                    createChatButton.classList.toggle('opacity-50', !isCurrentProject);
+                    createChatButton.classList.toggle('cursor-not-allowed', !isCurrentProject);
+                }
+            };
+
+            const syncRightPanelActions = () => {
+                const isCurrentProject = state.selectedProjectId === PAGE_KEY;
+                rightPanelNewChatButton.disabled = !isCurrentProject;
+                rightPanelNewChatButton.classList.toggle('opacity-50', !isCurrentProject);
+                rightPanelNewChatButton.classList.toggle('cursor-not-allowed', !isCurrentProject);
+            };
+
+            const renderProjectChatList = () => {
+                if (!projectChatListPanel || !projectChatEmptyState) {
+                    return;
+                }
+
+                const project = getSelectedProject();
+                const projectName = project?.name || state.defaultProjectName;
+                const chats = getChatsForSelectedProject();
+
+                projectChatListPanel.innerHTML = '';
+
+                if (chats.length === 0) {
+                    projectChatEmptyState.classList.remove('hidden');
+                    projectChatEmptyState.textContent = `No chats linked to ${projectName} yet.`;
+                } else {
+                    projectChatEmptyState.classList.add('hidden');
+                    chats
+                        .slice()
+                        .sort((a, b) => new Date(b.updatedAt || b.lastUpdated || 0) - new Date(a.updatedAt || a.lastUpdated || 0))
+                        .forEach((chat) => {
+                            const item = document.createElement('button');
+                            item.type = 'button';
+                            item.className = 'w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-transparent bg-white hover:bg-sky/5 transition-colors text-left';
+                            item.dataset.chatId = chat.id;
+
+                            const title = document.createElement('span');
+                            title.className = 'text-sm font-medium text-gray-800 truncate';
+                            title.textContent = chat.title || 'Untitled Chat';
+
+                            const meta = document.createElement('span');
+                            meta.className = 'text-xs text-gray-400 flex-shrink-0';
+                            if (chat.updatedAt || chat.lastUpdated) {
+                                meta.textContent = formatRelative(chat.updatedAt || chat.lastUpdated);
+                            } else {
+                                meta.textContent = '';
+                            }
+
+                            if (state.selectedProjectId === PAGE_KEY && state.activeChatId === chat.id) {
+                                item.classList.add('bg-sky/10', 'border-navy');
+                            }
+
+                            item.append(title, meta);
+
+                            item.addEventListener('click', () => {
+                                if (state.selectedProjectId === PAGE_KEY) {
+                                    openChat(chat.id);
+                                    return;
+                                }
+
+                                if (chat.href) {
+                                    const nav = window.AIAssistant?.navigation;
+                                    if (nav && typeof nav.go === 'function') {
+                                        nav.go(chat.href);
+                                    } else {
+                                        window.location.href = chat.href;
+                                    }
+                                    return;
+                                }
+
+                                const targetProject = getSelectedProject();
+                                if (targetProject?.href) {
+                                    const nav = window.AIAssistant?.navigation;
+                                    if (nav && typeof nav.go === 'function') {
+                                        nav.go(targetProject.href);
+                                    } else {
+                                        window.location.href = targetProject.href;
+                                    }
+                                    return;
+                                }
+
+                                showNotification('Open this project to continue the conversation.', 'info');
+                            });
+
+                            projectChatListPanel.appendChild(item);
+                        });
+                }
+
+                if (projectChatPanelSubtitle) {
+                    projectChatPanelSubtitle.textContent = chats.length
+                        ? `${chats.length} chat${chats.length === 1 ? '' : 's'} linked to ${projectName}`
+                        : `No chats linked to ${projectName} yet.`;
+                }
+            };
+
+            function renderProjectTabs() {
+                if (!projectChatTabs) {
+                    return;
+                }
+
+                projectChatTabs.innerHTML = '';
+
+                if (!state.projectFolders.length) {
+                    return;
+                }
+
+                state.projectFolders.forEach((folder) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-colors';
+                    button.textContent = folder.name;
+
+                    const isActive = folder.id === state.selectedProjectId;
+                    button.classList.toggle('bg-navy', isActive);
+                    button.classList.toggle('text-white', isActive);
+                    button.classList.toggle('border-navy', isActive);
+                    button.classList.toggle('bg-white', !isActive);
+                    button.classList.toggle('text-gray-600', !isActive);
+                    button.classList.toggle('border-gray-200', !isActive);
+                    button.classList.toggle('hover:bg-sky/10', !isActive);
+
+                    button.addEventListener('click', () => {
+                        if (state.selectedProjectId !== folder.id) {
+                            selectProject(folder.id);
+                        }
+                    });
+
+                    projectChatTabs.appendChild(button);
+                });
+            }
+
+            function selectProject(projectId, { focusNewChat = false } = {}) {
+                if (!projectId) {
+                    return;
+                }
+
+                state.selectedProjectId = projectId;
+                updateProjectContext();
+                renderProjectChatList();
+                renderProjectTabs();
+                syncRightPanelActions();
+
+                if (focusNewChat && projectId === PAGE_KEY && newChatInput) {
+                    requestAnimationFrame(() => newChatInput.focus());
+                }
+            }
+
+            const refreshProjectFolders = () => {
+                const previousSelection = state.selectedProjectId;
+                ensureProjectFolders();
+                const fallbackId = state.projectFolders.some((folder) => folder.id === PAGE_KEY)
+                    ? PAGE_KEY
+                    : state.projectFolders[0]?.id || null;
+                const nextSelection = state.projectFolders.some((folder) => folder.id === previousSelection)
+                    ? previousSelection
+                    : fallbackId;
+
+                if (nextSelection) {
+                    selectProject(nextSelection);
+                } else {
+                    state.selectedProjectId = null;
+                    if (projectChatTabs) {
+                        projectChatTabs.innerHTML = '';
+                    }
+                    if (projectChatListPanel) {
+                        projectChatListPanel.innerHTML = '';
+                    }
+                    if (projectChatEmptyState) {
+                        projectChatEmptyState.classList.remove('hidden');
+                        projectChatEmptyState.textContent = 'No projects available.';
+                    }
+                    if (projectChatPanelSubtitle) {
+                        projectChatPanelSubtitle.textContent = 'No chats linked to this project yet.';
+                    }
+                }
+            };
+
+            const exitChatTitleEditMode = () => {
+                state.renamingChatId = null;
+                chatTitleEditForm.classList.add('hidden');
+                chatTitleDisplay.classList.remove('hidden');
+                chatTitleInput.value = '';
+            };
+
+            const startChatTitleEdit = () => {
+                if (!state.activeChatId) {
+                    showNotification('Select a chat to rename first.', 'info');
+                    return;
+                }
+
+                const chat = state.chats.find((entry) => entry.id === state.activeChatId);
+                if (!chat) {
+                    showNotification('We could not find that conversation.', 'error');
+                    return;
+                }
+
+                state.renamingChatId = chat.id;
+                chatTitleDisplay.classList.add('hidden');
+                chatTitleEditForm.classList.remove('hidden');
+                chatTitleInput.value = chat.title;
+                requestAnimationFrame(() => {
+                    chatTitleInput.focus();
+                    chatTitleInput.select();
+                });
+            };
+
+            const submitChatTitleEdit = () => {
+                if (!state.renamingChatId) {
+                    showNotification('Select a chat to rename first.', 'info');
+                    return;
+                }
+
+                const chat = state.chats.find((entry) => entry.id === state.renamingChatId);
+                if (!chat) {
+                    showNotification('We could not find that conversation.', 'error');
+                    exitChatTitleEditMode();
+                    return;
+                }
+
+                const value = chatTitleInput.value.trim();
+                if (!value) {
+                    showNotification('Give the chat a title before saving.', 'warning');
+                    chatTitleInput.focus();
+                    return;
+                }
+
+                chat.title = value;
+                if (chatHistoryApi && typeof chatHistoryApi.renameChat === 'function') {
+                    chatHistoryApi.renameChat(chat.id, value);
+                }
+                updateChatPanel(chat);
+                renderChatList();
+                exitChatTitleEditMode();
+                showNotification('Chat title updated.', 'success');
+            };
+
+            const toggleRecording = (context = 'chat') => {
+                state.recording = !state.recording;
+                updateRecordingUI();
+
+                const startMessages = {
+                    chat: 'Listening... describe the update to add it to this chat.',
+                    'new-chat': 'Listening... describe the new chat to capture it.'
+                };
+
+                const stopMessages = {
+                    chat: 'Voice capture paused for this chat.',
+                    'new-chat': 'Voice capture paused.'
+                };
+
+                const key = context === 'new-chat' ? 'new-chat' : 'chat';
+                showNotification(state.recording ? startMessages[key] : stopMessages[key], 'info');
+            };
+
+            updateRecordingUI();
+
+            const showNotification = (message, type = 'info') => {
+                if (!notificationContainer) return;
+
+                const note = document.createElement('div');
+                note.className = `flex items-start space-x-3 px-4 py-3 rounded-xl shadow-lg bg-white border border-gray-200 text-gray-700 transform transition-all duration-300 translate-y-0 opacity-100`;
+                note.setAttribute('role', 'status');
+                note.dataset.type = type;
+
+                const icon = document.createElement('i');
+                const iconMap = {
+                    info: 'fa-solid fa-circle-info text-sky-600',
+                    success: 'fa-solid fa-circle-check text-emerald-600',
+                    warning: 'fa-solid fa-circle-exclamation text-amber-600',
+                    error: 'fa-solid fa-triangle-exclamation text-rose-600'
+                };
+                icon.className = `${iconMap[type] || iconMap.info} mt-0.5`;
+
+                const text = document.createElement('span');
+                text.className = 'text-sm flex-1';
+                text.textContent = message;
+
+                const close = document.createElement('button');
+                close.className = 'text-xs text-gray-400 hover:text-gray-600 mt-0.5';
+                close.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                close.addEventListener('click', () => {
+                    note.classList.add('opacity-0', 'translate-y-1');
+                    setTimeout(() => note.remove(), 200);
+                });
+
+                note.append(icon, text, close);
+                notificationContainer.appendChild(note);
+
+                setTimeout(() => {
+                    note.classList.add('opacity-0', 'translate-y-1');
+                    setTimeout(() => note.remove(), 200);
+                }, 4500);
+            };
+
+            const participantPalette = [
+                'bg-rose-500',
+                'bg-sky-500',
+                'bg-amber-500',
+                'bg-emerald-500',
+                'bg-indigo-500',
+                'bg-purple-500'
+            ];
+
+            const initialChats = [
+                {
+                    id: 'chat-log-generation',
+                    title: 'Log Generation Chat',
+                    summary: 'Generating deployment log updates for the PAMM Manager landing pages rollout.',
+                    updatedAt: '2025-09-24T14:35:00Z',
+                    participants: [
+                        { name: 'John Smith', role: 'Product Owner' },
+                        { name: 'AI Assistant', role: 'Assistant' }
+                    ],
+                    messages: [
+                        {
+                            id: 'chat-log-generation-1',
+                            author: 'user',
+                            content: '/generate log with below update\n\nPAMM Manager Landing Pages have been successfully deployed for both GM and MU entities. All testing completed and Phase 3 progress updated from 65% to 85%.',
+                            timestamp: '2025-09-24T14:34:00Z'
+                        },
+                        {
+                            id: 'chat-log-generation-2',
+                            author: 'assistant',
+                            content: "Perfect! I've generated a detailed log entry capturing the deployment summary, QA status, and progress update for Phase 3.",
+                            timestamp: '2025-09-24T14:34:30Z'
+                        },
+                        {
+                            id: 'chat-log-generation-3',
+                            author: 'user',
+                            content: 'Great! Can you also update the technical requirements section with more deployment details?',
+                            timestamp: '2025-09-24T14:35:00Z'
+                        },
+                        {
+                            id: 'chat-log-generation-4',
+                            author: 'assistant',
+                            content: "Absolutely! I've expanded the technical requirements with deployment architecture, security configuration, and performance metrics for this release.",
+                            timestamp: '2025-09-24T14:35:20Z'
+                        }
+                    ]
+                },
+                {
+                    id: 'chat-brd-generation',
+                    title: 'BRD Generation Chat',
+                    summary: 'Iterating on BRD revisions to introduce multi-currency rebate support.',
+                    updatedAt: '2025-09-24T15:16:00Z',
+                    participants: [
+                        { name: 'John Smith', role: 'Product Owner' },
+                        { name: 'AI Assistant', role: 'Assistant' }
+                    ],
+                    messages: [
+                        {
+                            id: 'chat-brd-generation-1',
+                            author: 'user',
+                            content: '/generate a new BRD version based on provided updates below\n\nNeed to add multi-currency support for PAMM rebate calculations. Include EUR, GBP, and JPY alongside existing USD functionality. Update rebate percentage calculations and add new validation rules for currency conversion rates.',
+                            timestamp: '2025-09-24T15:15:00Z'
+                        },
+                        {
+                            id: 'chat-brd-generation-2',
+                            author: 'assistant',
+                            content: "I've produced BRD version 3.2 with full multi-currency coverage, updated calculation logic, and validation requirements.",
+                            timestamp: '2025-09-24T15:15:30Z'
+                        },
+                        {
+                            id: 'chat-brd-generation-3',
+                            author: 'user',
+                            content: 'Perfect! Can you also add acceptance criteria for the currency conversion feature?',
+                            timestamp: '2025-09-24T15:16:00Z'
+                        },
+                        {
+                            id: 'chat-brd-generation-4',
+                            author: 'assistant',
+                            content: "Done! The BRD now includes acceptance criteria covering rate validation, fallback handling, error scenarios, and compliance needs for each supported currency.",
+                            timestamp: '2025-09-24T15:16:20Z'
+                        }
+                    ]
+                }
+            ];
+
+            state.chats = initialChats.map((chat) => ({ ...chat }));
+
+            if (chatHistoryApi) {
+                if (
+                    typeof chatHistoryApi.getByProject === 'function'
+                    && typeof chatHistoryApi.deleteChat === 'function'
+                ) {
+                    const orphanedChats = chatHistoryApi
+                        .getByProject(PAGE_KEY)
+                        .filter((entry) => !entry.href);
+
+                    orphanedChats.forEach((entry) => {
+                        chatHistoryApi.deleteChat(entry.id);
+                    });
+                }
+
+                if (typeof chatHistoryApi.createChat === 'function') {
+                    const existingChats = typeof chatHistoryApi.getAll === 'function'
+                        ? chatHistoryApi.getAll()
+                        : [];
+
+                    initialChats.forEach((chat) => {
+                        const alreadyTracked = existingChats.some((entry) => entry.id === chat.id);
+                        if (!alreadyTracked) {
+                            chatHistoryApi.createChat({
+                                id: chat.id,
+                                title: chat.title,
+                                projectId: PAGE_KEY,
+                            });
+                        }
+                    });
+                }
+            }
+
+            refreshProjectFolders();
+
+            function formatDate(value) {
+                if (!value) return '';
+                const parsed = new Date(value);
+                if (Number.isNaN(parsed.getTime())) return value;
+                return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(parsed);
+            }
+
+            function formatDateTime(value) {
+                if (!value) return '';
+                const parsed = new Date(value);
+                if (Number.isNaN(parsed.getTime())) return value;
+                return new Intl.DateTimeFormat('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit'
+                }).format(parsed);
+            }
+
+            function formatRelative(value) {
+                if (!value) return '';
+                const parsed = new Date(value);
+                if (Number.isNaN(parsed.getTime())) return '';
+                const diff = Date.now() - parsed.getTime();
+                const minutes = Math.round(diff / 60000);
+                if (minutes < 1) return 'Just now';
+                if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+                const hours = Math.round(minutes / 60);
+                if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+                const days = Math.round(hours / 24);
+                return `${days} day${days === 1 ? '' : 's'} ago`;
+            }
+
+            const formatFileSize = (bytes = 0) => {
+                if (!bytes) return '0 B';
+                const units = ['B', 'KB', 'MB', 'GB'];
+                const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+                return `${(bytes / (1024 ** exponent)).toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
+            };
+
+            const generateMessageId = (chatId) => {
+                state.messageSequence += 1;
+                return `${chatId}-${Date.now()}-${state.messageSequence}`;
+            };
+
+            const createParticipantBadge = (name, index) => {
+                const badge = document.createElement('div');
+                badge.className = `${participantPalette[index % participantPalette.length]} text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ring-2 ring-white shadow-sm`;
+                badge.textContent = name
+                    .split(' ')
+                    .map((part) => part[0])
+                    .join('')
+                    .slice(0, 2)
+                    .toUpperCase();
+                badge.title = name;
+                return badge;
+            };
+
+            const closeChatPanel = () => {
+                chatPanel.classList.add('hidden');
+                if (projectInterface) {
+                    projectInterface.classList.remove('chat-view-active');
+                }
+                state.activeChatId = null;
+                if (state.renamingChatId) {
+                    exitChatTitleEditMode();
+                }
+                resetPendingAttachments();
+                chatMessageInput.value = '';
+                renderChatList();
+            };
+
+            const openChatPanel = () => {
+                chatPanel.classList.remove('hidden');
+                if (projectInterface) {
+                    projectInterface.classList.add('chat-view-active');
+                }
+            };
+
+            closePanelButtons.forEach((button) => button.addEventListener('click', closeChatPanel));
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !chatPanel.classList.contains('hidden')) {
+                    closeChatPanel();
+                }
+            });
+
+            chatTitleEditButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                startChatTitleEdit();
+            });
+
+            chatPanelTitle.addEventListener('dblclick', (event) => {
+                event.preventDefault();
+                startChatTitleEdit();
+            });
+
+            chatTitleEditForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                submitChatTitleEdit();
+            });
+
+            chatTitleEditCancel.addEventListener('click', () => {
+                exitChatTitleEditMode();
+                if (state.activeChatId) {
+                    const chat = state.chats.find((entry) => entry.id === state.activeChatId);
+                    if (chat) {
+                        updateChatPanel(chat);
+                    }
+                }
+                showNotification('Chat title edit cancelled.', 'info');
+            });
+
+            chatTitleInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    chatTitleEditCancel.click();
+                }
+            });
+
+            const scrollMessagesToBottom = () => {
+                requestAnimationFrame(() => {
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+            };
+
+            const renderAttachments = (container, attachments = [], variant = 'assistant') => {
+                if (!attachments || !attachments.length) return;
+                const list = document.createElement('div');
+                list.className = 'mt-3 space-y-2';
+                attachments.forEach((file) => {
+                    const item = document.createElement('div');
+                    if (variant === 'user') {
+                        item.className = 'flex items-center space-x-2 bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs text-white/90';
+                        item.innerHTML = `
+                            <i class="fa-solid fa-paperclip text-white/80"></i>
+                            <span class="font-medium truncate">${file.name}</span>
+                            <span class="text-white/70">${formatFileSize(file.size)}</span>
+                        `;
+                    } else {
+                        item.className = 'flex items-center space-x-2 text-xs text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm';
+                        item.innerHTML = `
+                            <i class="fa-solid fa-paperclip text-navy"></i>
+                            <span class="font-medium truncate">${file.name}</span>
+                            <span class="text-gray-400">${formatFileSize(file.size)}</span>
+                        `;
+                    }
+                    list.appendChild(item);
+                });
+                container.appendChild(list);
+            };
+
+            const renderMessages = (chat) => {
+                chatMessages.innerHTML = '';
+
+                if (!chat.messages || !chat.messages.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'py-16 flex flex-col items-center justify-center text-center text-sm text-gray-500';
+                    empty.innerHTML = `
+                        <div class="w-14 h-14 rounded-full bg-white border border-dashed border-gray-300 flex items-center justify-center mb-4">
+                            <i class="fa-regular fa-comments text-2xl text-gray-300"></i>
+                        </div>
+                        <p>No messages yet. Start the conversation below.</p>
+                    `;
+                    chatMessages.appendChild(empty);
+                    return;
+                }
+
+                chat.messages.forEach((message) => {
+                    const isUser = message.author === 'user';
+                    const wrapper = document.createElement('div');
+                    wrapper.className = `flex ${isUser ? 'justify-end' : 'justify-start'} mt-6`;
+
+                    const innerWrapper = document.createElement('div');
+                    innerWrapper.className = 'max-w-2xl';
+
+                    if (isUser) {
+                        const bubble = document.createElement('div');
+                        bubble.className = 'bg-navy text-white rounded-2xl rounded-br-md px-4 py-3 chat-bubble whitespace-pre-wrap text-sm';
+                        bubble.textContent = message.content || 'Shared files';
+                        innerWrapper.appendChild(bubble);
+
+                        if (message.attachments && message.attachments.length) {
+                            const attachmentContainer = document.createElement('div');
+                            attachmentContainer.className = 'mt-3';
+                            renderAttachments(attachmentContainer, message.attachments, 'user');
+                            innerWrapper.appendChild(attachmentContainer);
+                        }
+
+                        const meta = document.createElement('div');
+                        meta.className = 'flex items-center justify-end space-x-2 mt-2';
+                        const time = document.createElement('span');
+                        time.className = 'text-xs text-gray-500';
+                        time.textContent = formatDateTime(message.timestamp);
+                        meta.appendChild(time);
+
+                        const avatar = document.createElement('img');
+                        avatar.src = 'https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg';
+                        avatar.alt = 'John Smith';
+                        avatar.className = 'w-5 h-5 rounded-full';
+                        meta.appendChild(avatar);
+
+                        innerWrapper.appendChild(meta);
+                    } else {
+                        const contentRow = document.createElement('div');
+                        contentRow.className = 'flex items-start space-x-3';
+
+                        const avatar = document.createElement('div');
+                        avatar.className = 'w-8 h-8 bg-sky rounded-full flex items-center justify-center flex-shrink-0 mt-1';
+                        avatar.innerHTML = '<i class="fa-solid fa-robot text-white text-sm"></i>';
+                        contentRow.appendChild(avatar);
+
+                        const bubble = document.createElement('div');
+                        bubble.className = 'bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 chat-bubble text-sm text-gray-800 whitespace-pre-wrap';
+                        bubble.textContent = message.content || '';
+
+                        if (message.attachments && message.attachments.length) {
+                            renderAttachments(bubble, message.attachments);
+                        }
+
+                        contentRow.appendChild(bubble);
+                        innerWrapper.appendChild(contentRow);
+
+                        const meta = document.createElement('div');
+                        meta.className = 'flex items-center space-x-2 mt-2 ml-11';
+                        const time = document.createElement('span');
+                        time.className = 'text-xs text-gray-500';
+                        time.textContent = formatDateTime(message.timestamp);
+                        meta.appendChild(time);
+                        innerWrapper.appendChild(meta);
+                    }
+
+                    wrapper.appendChild(innerWrapper);
+                    chatMessages.appendChild(wrapper);
+                });
+
+                scrollMessagesToBottom();
+            };
+
+            const updateChatPanel = (chat) => {
+                chatPanelTitle.textContent = chat.title;
+                if (state.renamingChatId === chat.id) {
+                    chatTitleDisplay.classList.add('hidden');
+                    chatTitleEditForm.classList.remove('hidden');
+                    if (document.activeElement !== chatTitleInput) {
+                        chatTitleInput.value = chat.title;
+                    }
+                } else {
+                    chatTitleDisplay.classList.remove('hidden');
+                    chatTitleEditForm.classList.add('hidden');
+                    chatTitleInput.value = chat.title;
+                }
+                chatPanelSubtitle.textContent = chat.summary || 'Conversation details and discussion history.';
+                chatLastUpdated.textContent = `Updated ${formatRelative(chat.updatedAt)}`;
+
+                chatParticipants.innerHTML = '';
+                const participantNames = [];
+                chat.participants.forEach((participant, index) => {
+                    chatParticipants.appendChild(createParticipantBadge(participant.name, index));
+                    participantNames.push(participant.name.split(' ')[0]);
+                });
+                chatParticipantSummary.textContent = participantNames.join(', ');
+
+                renderMessages(chat);
+            };
+
+            const renderChatList = () => {
+                const sorted = [...state.chats].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+                chatList.innerHTML = '';
+
+                if (!sorted.length) {
+                    chatEmptyState.classList.remove('hidden');
+                } else {
+                    chatEmptyState.classList.add('hidden');
+                }
+
+                sorted.forEach((chat) => {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.dataset.chatId = chat.id;
+                    item.className = `w-full text-left px-6 py-4 flex items-start justify-between gap-4 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-navy ${state.activeChatId === chat.id ? 'bg-sky/5' : ''}`;
+
+                    const info = document.createElement('div');
+                    info.className = 'flex-1 min-w-0';
+
+                    const title = document.createElement('p');
+                    title.className = 'text-base font-semibold text-gray-800 truncate';
+                    title.textContent = chat.title;
+                    title.title = 'Double-click to rename';
+                    title.addEventListener('dblclick', (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (state.activeChatId !== chat.id) {
+                            openChat(chat.id);
+                            setTimeout(startChatTitleEdit, 50);
+                        } else {
+                            startChatTitleEdit();
+                        }
+                    });
+
+                    const snippet = document.createElement('p');
+                    snippet.className = 'text-sm text-gray-500 truncate mt-1';
+                    const lastMessage = (chat.messages || []).slice(-1)[0];
+                    snippet.textContent = lastMessage ? lastMessage.content : chat.summary;
+
+                    info.append(title, snippet);
+
+                    const meta = document.createElement('div');
+                    meta.className = 'flex flex-col items-end flex-shrink-0 text-sm text-gray-500 whitespace-nowrap';
+                    meta.innerHTML = `<span>${formatDate(chat.updatedAt)}</span>`;
+
+                    item.append(info, meta);
+                    item.addEventListener('click', () => openChat(chat.id));
+
+                    chatList.appendChild(item);
+                });
+
+                renderProjectChatList();
+            };
+
+            const openChat = (chatId, options = {}) => {
+                const chat = state.chats.find((entry) => entry.id === chatId);
+                if (!chat) {
+                    showNotification('This chat could not be found.', 'error');
+                    return;
+                }
+                if (state.selectedProjectId !== PAGE_KEY) {
+                    selectProject(PAGE_KEY);
+                }
+                if (state.renamingChatId && state.renamingChatId !== chatId) {
+                    exitChatTitleEditMode();
+                }
+                state.activeChatId = chatId;
+                renderChatList();
+                updateChatPanel(chat);
+                openChatPanel();
+                if (options.focusComposer) {
+                    setTimeout(() => chatMessageInput.focus(), 200);
+                }
+            };
+
+            const resetPendingAttachments = () => {
+                state.pendingAttachments = [];
+                attachmentPreview.innerHTML = '';
+                attachmentPreview.classList.add('hidden');
+            };
+
+            const renderAttachmentPreview = () => {
+                attachmentPreview.innerHTML = '';
+                if (!state.pendingAttachments.length) {
+                    attachmentPreview.classList.add('hidden');
+                    return;
+                }
+
+                attachmentPreview.classList.remove('hidden');
+                state.pendingAttachments.forEach((file, index) => {
+                    const chip = document.createElement('span');
+                    chip.className = 'attachment-chip inline-flex items-center space-x-2 bg-sky/10 text-navy px-3 py-1.5 rounded-full text-xs font-medium';
+                    chip.innerHTML = `
+                        <i class="fa-solid fa-paperclip"></i>
+                        <span>${file.name}</span>
+                        <span class="text-gray-400">${formatFileSize(file.size)}</span>
+                        <button type="button" class="text-gray-400 hover:text-rose-500" aria-label="Remove attachment"><i class="fa-solid fa-xmark"></i></button>
+                    `;
+                    const removeButton = chip.querySelector('button');
+                    removeButton.addEventListener('click', () => {
+                        state.pendingAttachments.splice(index, 1);
+                        renderAttachmentPreview();
+                    });
+                    attachmentPreview.appendChild(chip);
+                });
+            };
+
+            const createChat = (promptText) => {
+                const now = new Date().toISOString();
+                const title = promptText.length > 60 ? `${promptText.slice(0, 57)}…` : promptText;
+                const chatId = `chat-${Date.now()}`;
+                const newChat = {
+                    id: chatId,
+                    title,
+                    summary: 'New conversation created by you.',
+                    updatedAt: now,
+                    participants: [
+                        { name: 'John Smith', role: 'Product Owner' },
+                        { name: 'AI Assistant', role: 'Assistant' }
+                    ],
+                    messages: [
+                        {
+                            id: generateMessageId(chatId),
+                            author: 'user',
+                            content: promptText,
+                            timestamp: now
+                        }
+                    ]
+                };
+                state.chats.unshift(newChat);
+                if (chatHistoryApi && typeof chatHistoryApi.createChat === 'function') {
+                    chatHistoryApi.createChat({
+                        id: chatId,
+                        title,
+                        projectId: PAGE_KEY,
+                    });
+                }
+                selectProject(PAGE_KEY);
+                renderChatList();
+                openChat(newChat.id, { focusComposer: true });
+                showNotification('New chat created successfully.', 'success');
+            };
+
+            const simulateAssistantReply = (chat, context) => {
+                setTimeout(() => {
+                    if (!state.chats.some((entry) => entry.id === chat.id)) return;
+                    const replyText = context && context.length > 0
+                        ? `Thanks for the update! I’ll capture: “${context.slice(0, 80)}${context.length > 80 ? '…' : ''}” and prepare the next action items.`
+                        : 'I’m ready to help. Share more details whenever you’re ready!';
+                    const timestamp = new Date().toISOString();
+                    chat.messages.push({
+                        id: generateMessageId(chat.id),
+                        author: 'assistant',
+                        content: replyText,
+                        timestamp
+                    });
+                    chat.updatedAt = timestamp;
+                    if (state.activeChatId === chat.id) {
+                        renderMessages(chat);
+                        chatLastUpdated.textContent = `Updated ${formatRelative(chat.updatedAt)}`;
+                    }
+                    renderChatList();
+                }, 900 + Math.random() * 800);
+            };
+
+            newChatForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                if (state.selectedProjectId !== PAGE_KEY) {
+                    showNotification('Switch to this project to create a chat.', 'info');
+                    return;
+                }
+                const value = newChatInput.value.trim();
+                if (!value) {
+                    showNotification('Add a short note about the conversation to create a chat.', 'warning');
+                    newChatInput.focus();
+                    return;
+                }
+                createChat(value);
+                newChatInput.value = '';
+            });
+
+            if (microphoneButton) {
+                microphoneButton.addEventListener('click', () => {
+                    toggleRecording('new-chat');
+                });
+            }
+
+            if (composerVoiceButton) {
+                composerVoiceButton.addEventListener('click', () => {
+                    if (!state.activeChatId) {
+                        showNotification('Open or create a chat before enabling voice input.', 'info');
+                        return;
+                    }
+
+                    toggleRecording('chat');
+                });
+            }
+
+            sidebarNewChatButton.addEventListener('click', () => {
+                selectProject(PAGE_KEY, { focusNewChat: true });
+                showNotification('Start typing to launch a new conversation for this project.', 'info');
+            });
+
+            chatComposer.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const chat = state.chats.find((entry) => entry.id === state.activeChatId);
+                if (!chat) {
+                    showNotification('Select a chat before sending a message.', 'warning');
+                    return;
+                }
+
+                const text = chatMessageInput.value.trim();
+                if (!text && state.pendingAttachments.length === 0) {
+                    showNotification('Write a message or attach a file before sending.', 'warning');
+                    return;
+                }
+
+                const timestamp = new Date().toISOString();
+                const message = {
+                    id: generateMessageId(chat.id),
+                    author: 'user',
+                    content: text || 'Shared files',
+                    timestamp,
+                    attachments: state.pendingAttachments.length ? [...state.pendingAttachments] : undefined
+                };
+
+                chat.messages.push(message);
+                chat.updatedAt = timestamp;
+                chatMessageInput.value = '';
+                resetPendingAttachments();
+                renderMessages(chat);
+                chatLastUpdated.textContent = `Updated ${formatRelative(chat.updatedAt)}`;
+                renderChatList();
+
+                simulateAssistantReply(chat, text);
+            });
+
+            const requestAttachment = () => {
+                if (!state.activeChatId) {
+                    showNotification('Open or create a chat before attaching files.', 'info');
+                    return;
+                }
+
+                addFilesInput.click();
+            };
+
+            addFilesButton.addEventListener('click', requestAttachment);
+
+            if (composerAttachmentButton) {
+                composerAttachmentButton.addEventListener('click', requestAttachment);
+            }
+
+            addFilesInput.addEventListener('change', () => {
+                const files = Array.from(addFilesInput.files || []);
+                if (!files.length) return;
+                files.forEach((file) => {
+                    state.pendingAttachments.push({ name: file.name, size: file.size });
+                });
+                renderAttachmentPreview();
+                showNotification(`${files.length} file${files.length === 1 ? '' : 's'} added to your next message.`, 'success');
+                addFilesInput.value = '';
+            });
+
+            rightPanelNewChatButton.addEventListener('click', () => {
+                selectProject(PAGE_KEY, { focusNewChat: true });
+                showNotification('Start typing to launch a new conversation for this project.', 'info');
+            });
+
+            if (refreshProjectFoldersHandler) {
+                document.removeEventListener('ai-assistant:project-folders-rendered', refreshProjectFoldersHandler);
+            }
+            refreshProjectFoldersHandler = refreshProjectFolders;
+            document.addEventListener('ai-assistant:project-folders-rendered', refreshProjectFoldersHandler);
+
+            renderChatList();
+    };
+
+    const resetAndInit = () => {
+        initialized = false;
+        init();
+    };
+
+    const handleInitEvent = (event) => {
+        const targetPage = event?.detail?.page;
+        if (targetPage && targetPage !== PAGE_KEY) {
+            return;
+        }
+        resetAndInit();
+    };
+
+    const attach = () => {
+        document.addEventListener('ai-assistant:init-page', handleInitEvent);
+    };
+
+    const detach = () => {
+        document.removeEventListener('ai-assistant:init-page', handleInitEvent);
+        if (refreshProjectFoldersHandler) {
+            document.removeEventListener('ai-assistant:project-folders-rendered', refreshProjectFoldersHandler);
+            refreshProjectFoldersHandler = null;
+        }
+        initialized = false;
+    };
+
+    window.AIAssistant = window.AIAssistant || {};
+    window.AIAssistant.pages = window.AIAssistant.pages || {};
+    const previous = window.AIAssistant.pages[PAGE_KEY];
+    if (previous && typeof previous.teardown === 'function') {
+        previous.teardown();
+    }
+
+    window.AIAssistant.pages[PAGE_KEY] = {
+        init: resetAndInit,
+        teardown: detach,
+    };
+
+    attach();
+
+    const shouldAutoInit = !window.AIAssistant?.navigation?.isNavigating;
+    if (shouldAutoInit) {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init, { once: true });
+        } else {
+            init();
+        }
+    }
+})();
+</script>
+</body>
+</html>

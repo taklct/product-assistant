@@ -1,0 +1,1172 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="scripts/sidebar.js" defer></script>
+    <script src="scripts/sidebar-favorites.js" defer></script>
+    <script src="scripts/sidebar-projects.js" defer></script>
+    <script src="scripts/sidebar-chats.js" defer></script>
+    <script src="scripts/sidebar-init.js" defer></script>
+    <script src="scripts/spa-navigation.js" defer></script>
+    <script src="scripts/topbar.js" defer></script>
+    
+    <style>
+        ::-webkit-scrollbar { display: none;}
+        body { font-family: 'Inter', sans-serif; }
+        .glass-effect { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.9); }
+        .chat-bubble { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .chat-bubble:hover { transform: translateY(-1px); }
+        .nav-item { transition: all 0.2s ease-in-out; }
+        .nav-item:hover { transform: translateX(2px); }
+        .control-btn { transition: all 0.2s ease-in-out; }
+        .control-btn:hover { transform: scale(1.02); }
+        .typing-indicator { animation: pulse 1.5s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .command-menu { box-shadow: 0px 20px 45px rgba(15, 23, 42, 0.15); }
+        .command-menu-item.active { background-color: rgba(9, 8, 195, 0.08); }
+        .attachment-chip { backdrop-filter: blur(6px); }
+        .drop-overlay { backdrop-filter: blur(6px); }
+        #sidebar { transition: width 0.3s ease, transform 0.3s ease; }
+        @media (min-width: 1024px) {
+            #sidebar { height: 100vh; }
+        }
+        #sidebar.collapsed { width: 80px; }
+        #sidebar.collapsed .sidebar-collapsible { display: none !important; }
+        #sidebar.collapsed .sidebar-icon-only {
+            justify-content: center !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        #sidebar.collapsed .sidebar-icon-only > :not(:first-child) {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+        #sidebar.collapsed .sidebar-icon-only .fa-solid,
+        #sidebar.collapsed .sidebar-icon-only .fa-regular { margin-right: 0; }
+        #sidebar.collapsed .control-btn i { margin-right: 0; }
+        #sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 40;
+            visibility: hidden;
+        }
+        #sidebar-backdrop.visible {
+            opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
+        }
+        body.sidebar-mobile-open { overflow: hidden; }
+        @media (max-width: 1024px) {
+            #sidebar {
+                position: fixed;
+                inset: 0 auto 0 0;
+                width: 280px;
+                transform: translateX(-100%);
+                box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+                z-index: 50;
+            }
+            #sidebar.mobile-open { transform: translateX(0); }
+            #sidebar.collapsed { width: 280px; }
+        }
+    </style>
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "fontFamily": {
+        "inter": [
+          "Inter",
+          "sans-serif"
+        ]
+      },
+      "colors": {
+        "navy": "#0908c3",
+        "sky": "#87CEEB"
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&amp;display=swap"><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="bg-gray-50" data-active-sidebar-link="chat-product-requirements">
+
+<div id="ai-tool-interface" class="relative flex flex-col lg:flex-row min-h-screen lg:h-screen w-full bg-gray-50 text-gray-900 font-inter">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-[280px] bg-white border-r border-gray-200 flex flex-col shadow-sm transition-all duration-300 flex-shrink-0 min-h-0 lg:max-h-screen overflow-y-auto">
+        <!-- Header -->
+        <div id="sidebar-header" class="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+            <div class="flex items-center space-x-2 sidebar-icon-only">
+                <div class="w-9 h-9 bg-navy rounded-xl flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-robot text-white text-base"></i>
+                </div>
+                <h1 class="text-base font-semibold text-gray-800 sidebar-collapsible">AI Assistant</h1>
+            </div>
+            <button id="sidebar-toggle" class="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Collapse sidebar" aria-expanded="true">
+                <i class="fa-solid fa-chevron-left text-sm" data-icon-collapse></i>
+                <i class="fa-solid fa-chevron-right text-sm hidden" data-icon-expand></i>
+            </button>
+        </div>
+
+        <!-- New Chat Button -->
+        <div id="new-chat-section" class="px-3 py-2 space-y-2">
+            <button id="sidebar-new-chat" class="w-full flex items-center justify-center bg-navy text-white rounded-xl h-8 text-sm font-medium hover:bg-navy/90 shadow-md control-btn">
+                <i class="fa-solid fa-plus mr-2"></i> <span class="sidebar-collapsible">New Chat</span>
+            </button>
+        </div>
+
+        <!-- Dashboard Navigation -->
+        <div id="dashboard-nav" class="px-4 pb-2.5">
+            <div class="space-y-0.5">
+                <a href="dashboard.html" class="w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="dashboard">
+                    <i class="fa-solid fa-chart-line text-sm"></i>
+                    <span class="text-sm sidebar-collapsible">Dashboard</span>
+                </a>
+                <a href="terminology.html" class="w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="terminology">
+                    <i class="fa-solid fa-book text-sm"></i>
+                    <span class="text-sm sidebar-collapsible">Terminology</span>
+                </a>
+                <div class="space-y-1.5" data-favorites-section>
+                    <button type="button" class="w-full flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="favorites">
+                        <div class="flex items-center space-x-2.5 min-w-0 sidebar-icon-only">
+                            <i class="fa-solid fa-star text-sm"></i>
+                            <span class="text-sm sidebar-collapsible">Favorites</span>
+                        </div>
+                        <span class="hidden text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full sidebar-collapsible" data-favorites-count></span>
+                    </button>
+                    <div class="pl-9 pr-2 space-y-2 hidden sidebar-collapsible" data-favorites-view>
+                        <div class="text-xs font-semibold text-gray-500">Favorites</div>
+                        <div class="space-y-2 hidden" data-favorites-list></div>
+                        <div class="rounded-lg border border-dashed border-gray-300 p-3 text-xs text-gray-500" data-favorites-empty>
+                            <p class="font-medium text-gray-600">No favorites yet</p>
+                            <p class="mt-1">Use the favorite controls within each page to pin items here for quick access.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Project and Project Folders -->
+        <div id="project-section" class="px-4 pb-2.5" data-project-section>
+            <div class="flex items-center justify-between px-3 pb-1.5 sidebar-collapsible">
+                <span class="text-xs font-semibold tracking-wide text-gray-400 uppercase">Projects</span>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-projects-toggle aria-expanded="true">
+                    <span class="sr-only">Toggle project folders</span>
+                    <i class="fa-solid fa-chevron-down text-xs" data-projects-icon="expanded"></i>
+                    <i class="fa-solid fa-chevron-right text-xs hidden" data-projects-icon="collapsed"></i>
+                </button>
+            </div>
+            <div class="space-y-0.5" data-projects-content>
+                <a href="create-project.html" class="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 cursor-pointer nav-item" data-sidebar-link="new-project">
+                    <div class="flex items-center space-x-2.5 min-w-0 sidebar-icon-only">
+                        <i class="fa-solid fa-folder-plus text-sm"></i>
+                        <span class="text-sm sidebar-collapsible">New Project</span>
+                    </div>
+                </a>
+
+                <div data-project-folders class="space-y-0.5"></div>
+            </div>
+        </div>
+
+        <!-- Chat History -->
+        <nav id="chat-history" class="flex-1 overflow-y-auto px-4 space-y-1" data-chats-section>
+            <div class="flex items-center justify-between px-3 pb-1.5 sidebar-collapsible">
+                <span class="text-xs font-semibold tracking-wide text-gray-400 uppercase">Chats</span>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-chats-toggle aria-expanded="true">
+                    <span class="sr-only">Toggle chats</span>
+                    <i class="fa-solid fa-chevron-down text-xs" data-chats-icon="expanded"></i>
+                    <i class="fa-solid fa-chevron-right text-xs hidden" data-chats-icon="collapsed"></i>
+                </button>
+            </div>
+            <div class="space-y-0.5" data-chats-content>
+                <div data-chat-history class="space-y-0.5"></div>
+            </div>
+        </nav>
+
+        <!-- User Profile -->
+        <div id="user-profile" class="border-t border-gray-200 p-2">
+            <div class="flex items-center space-x-2 px-2.5 py-1 rounded-xl hover:bg-gray-50 cursor-pointer nav-item sidebar-icon-only">
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-8 h-8 rounded-full">
+                <div class="flex-1 min-w-0 sidebar-collapsible">
+                    <div class="flex items-center space-x-1.5">
+                        <p class="text-sm font-medium text-gray-800 truncate">John Smith</p>
+                        <span class="inline-flex items-center justify-center w-2 h-2 rounded-full bg-green-500" role="status" aria-label="Online"></span>
+                    </div>
+                    <p class="text-xs text-gray-500">Product Owner</p>
+                </div>
+                <i class="fa-solid fa-gear text-gray-400 hover:text-gray-600 sidebar-collapsible"></i>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="flex-1 flex flex-col bg-white order-2 lg:order-none min-h-0 lg:max-h-screen lg:overflow-hidden">
+        <!-- Navigation Bar -->
+        <header id="header"
+            data-topbar
+            data-topbar-title="Product Requirements Chat"
+            data-topbar-icon="fa-solid fa-clipboard-list"
+            data-topbar-icon-color="text-navy"
+            data-topbar-icon-bg="bg-navy/10">
+            <div data-topbar-leading class="flex items-center space-x-2">
+                <button id="mobile-sidebar-toggle" class="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Open sidebar">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+            <div data-topbar-actions>
+                <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all">
+                    <i class="fa-solid fa-share-nodes"></i>
+                </button>
+                <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all">
+                    <i class="fa-solid fa-download"></i>
+                </button>
+                <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Chat Messages Area -->
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+            <!-- Welcome Message -->
+            <div id="welcome-message" class="text-center py-12">
+                <div class="w-16 h-16 bg-navy rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-robot text-white text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">Welcome to AI Assistant</h3>
+                <p class="text-gray-600 max-w-md mx-auto">I'm here to help you with product requirements, documentation, and project planning. How can I assist you today?</p>
+            </div>
+
+            <!-- User Message -->
+            <div id="user-message-1" class="flex justify-end">
+                <div class="max-w-2xl">
+                    <div class="bg-navy text-white rounded-2xl rounded-br-md px-4 py-3 chat-bubble">
+                        <p class="text-sm">I need help creating a user interface revamp plan for our AI tool. The goal is to make it more user-friendly and intuitive, similar to UX Pilot's simplicity.</p>
+                    </div>
+                    <div class="flex items-center justify-end space-x-2 mt-2">
+                        <span class="text-xs text-gray-500">2:34 PM</span>
+                        <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User" class="w-5 h-5 rounded-full">
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Response -->
+            <div id="ai-response-1" class="flex justify-start">
+                <div class="max-w-2xl">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 bg-sky rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <i class="fa-solid fa-robot text-white text-sm"></i>
+                        </div>
+                        <div class="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 chat-bubble">
+                            <p class="text-sm text-gray-800 mb-3">I'd be happy to help you create a UI revamp plan! Based on your requirements for a UX Pilot-like interface, here's a comprehensive approach:</p>
+                            
+                            <div class="space-y-3">
+                                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                                    <h4 class="font-semibold text-gray-800 mb-2">🎨 Visual Design Principles</h4>
+                                    <ul class="text-sm text-gray-600 space-y-1">
+                                        <li>• Clean, minimalist layout with plenty of white space</li>
+                                        <li>• Navy blue (#001F3F) as primary color for trust and professionalism</li>
+                                        <li>• Sky blue (#87CEEB) as accent color for interactive elements</li>
+                                        <li>• Consistent 8px grid system for spacing</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                                    <h4 class="font-semibold text-gray-800 mb-2">🏗️ Layout Structure</h4>
+                                    <ul class="text-sm text-gray-600 space-y-1">
+                                        <li>• Collapsible sidebar for chat history and tools</li>
+                                        <li>• Central conversation area with clear message bubbles</li>
+                                        <li>• Fixed input area at the bottom</li>
+                                        <li>• Optional right panel for quick actions</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                                    <h4 class="font-semibold text-gray-800 mb-2">⚡ Key Features</h4>
+                                    <ul class="text-sm text-gray-600 space-y-1">
+                                        <li>• Real-time typing indicators</li>
+                                        <li>• Message reactions and feedback</li>
+                                        <li>• Export conversation functionality</li>
+                                        <li>• Dark/light mode toggle</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <p class="text-sm text-gray-800 mt-3">Would you like me to elaborate on any specific aspect or help you prioritize these improvements?</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2 mt-2 ml-11">
+                        <span class="text-xs text-gray-500">2:35 PM</span>
+                        <div class="flex items-center space-x-1">
+                            <button class="p-1 text-gray-400 hover:text-gray-600 rounded">
+                                <i class="fa-regular fa-thumbs-up text-xs"></i>
+                            </button>
+                            <button class="p-1 text-gray-400 hover:text-gray-600 rounded">
+                                <i class="fa-regular fa-thumbs-down text-xs"></i>
+                            </button>
+                            <button class="p-1 text-gray-400 hover:text-gray-600 rounded">
+                                <i class="fa-regular fa-copy text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Follow-up -->
+            <div id="user-message-2" class="flex justify-end">
+                <div class="max-w-2xl">
+                    <div class="bg-navy text-white rounded-2xl rounded-br-md px-4 py-3 chat-bubble">
+                        <p class="text-sm">This looks great! Can you help me create a detailed component breakdown for the navigation bar and main interaction area?</p>
+                    </div>
+                    <div class="flex items-center justify-end space-x-2 mt-2">
+                        <span class="text-xs text-gray-500">2:36 PM</span>
+                        <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User" class="w-5 h-5 rounded-full">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div id="typing-indicator" class="flex justify-start">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-sky rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-robot text-white text-sm"></i>
+                    </div>
+                    <div class="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3">
+                        <div class="flex space-x-1">
+                            <div class="w-2 h-2 bg-gray-400 rounded-full typing-indicator"></div>
+                            <div class="w-2 h-2 bg-gray-400 rounded-full typing-indicator" style="animation-delay: 0.2s;"></div>
+                            <div class="w-2 h-2 bg-gray-400 rounded-full typing-indicator" style="animation-delay: 0.4s;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div id="input-area" class="border-t border-gray-200 p-4 bg-white">
+    <div class="max-w-4xl mx-auto">
+        <div id="attachment-preview" class="flex flex-wrap gap-2 mb-3 hidden"></div>
+        <div class="relative">
+            <div id="drop-overlay" class="drop-overlay hidden absolute inset-0 rounded-3xl border-2 border-dashed border-navy/40 bg-white/80 flex items-center justify-center text-navy font-medium z-20">
+                Drop files to attach
+            </div>
+            <div id="input-wrapper" class="relative flex items-center w-full bg-white border border-gray-200 rounded-full shadow-sm p-2 transition-all duration-200 focus-within:ring-2 focus-within:ring-navy/50">
+                <button id="attachment-button" type="button" class="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-navy hover:bg-gray-100 rounded-full transition-all ml-2">
+                    <i class="fa-solid fa-plus text-lg"></i>
+                </button>
+                <textarea id="chat-input" placeholder="New chat in Product Requirements" rows="1" class="flex-1 w-full p-2 bg-transparent border-none resize-none focus:ring-0 text-sm text-gray-800 placeholder-gray-500"></textarea>
+                <div class="flex items-center space-x-1 pr-2">
+                    <button id="voice-toggle" type="button" class="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-navy hover:bg-gray-100 rounded-full transition-all">
+                        <i class="fa-solid fa-microphone text-lg"></i>
+                    </button>
+                    <button id="send-button" type="button" class="w-10 h-10 flex items-center justify-center bg-gray-200 text-gray-600 rounded-full hover:bg-navy hover:text-white transition-all control-btn">
+                        <i class="fa-solid fa-arrow-up"></i>
+                    </button>
+                </div>
+                <div id="command-menu" class="command-menu hidden absolute bottom-full left-16 mb-3 w-72 bg-white rounded-2xl border border-gray-200 overflow-hidden z-30">
+                    <div class="px-4 py-3 border-b border-gray-100">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Slash commands</p>
+                    </div>
+                    <ul id="command-list" class="max-h-64 overflow-y-auto py-2"></ul>
+                </div>
+                <div id="attachment-menu" class="hidden absolute bottom-full left-0 mb-3 w-60 bg-white rounded-2xl border border-gray-200 shadow-xl z-30">
+                    <button data-action="upload" class="w-full flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <i class="fa-solid fa-arrow-up-from-bracket text-navy"></i>
+                        <span>Upload from computer</span>
+                    </button>
+                    <button data-action="link" class="w-full flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <i class="fa-solid fa-link text-navy"></i>
+                        <span>Add reference link</span>
+                    </button>
+                    <button data-action="note" class="w-full flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <i class="fa-solid fa-note-sticky text-navy"></i>
+                        <span>Add quick note</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <input id="file-input" type="file" multiple class="hidden" />
+    </div>
+</div>
+    </main>
+
+    <!-- Right Panel (Optional Tools) -->
+    <aside id="right-panel" class="lg:w-[300px] w-full bg-gray-50 border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col flex-shrink-0 order-3 lg:order-none min-h-0 lg:max-h-screen lg:overflow-hidden">
+        <div class="h-16 flex items-center px-4 border-b border-gray-200">
+            <h3 class="font-semibold text-gray-800">Quick Tools</h3>
+        </div>
+        
+        <div id="tools-content" class="flex-1 p-4 space-y-4 min-h-0 lg:overflow-y-auto">
+    <!-- Recent Files -->
+    <div class="bg-white rounded-xl p-4 border border-gray-200">
+        <h4 class="font-semibold text-gray-800 mb-3">Recent Files</h4>
+        <div class="space-y-2">
+            <div class="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                <i class="fa-regular fa-file-pdf text-red-500"></i>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-800 truncate">UI_Guidelines.pdf</p>
+                    <p class="text-xs text-gray-500">2 hours ago</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                <i class="fa-regular fa-file-code text-blue-500"></i>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-800 truncate">components.js</p>
+                    <p class="text-xs text-gray-500">1 day ago</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                <i class="fa-regular fa-file-image text-green-500"></i>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-800 truncate">mockup_v2.png</p>
+                    <p class="text-xs text-gray-500">3 days ago</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                <i class="fa-regular fa-file-excel text-emerald-500"></i>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-800 truncate">data_analysis.xlsx</p>
+                    <p class="text-xs text-gray-500">2 days ago</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Directory by Type -->
+    <div class="bg-white rounded-xl p-4 border border-gray-200">
+        <h4 class="font-semibold text-gray-800 mb-3">File Directory by Type</h4>
+        
+        <!-- Filter by Keyword -->
+        <div class="relative mb-4">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+            <input type="text" placeholder="Search files by type..." class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm placeholder-gray-500 focus:ring-2 focus:ring-navy/50 focus:border-navy focus:outline-none">
+        </div>
+
+        <div class="space-y-3">
+            <!-- Images -->
+            <div class="border border-gray-100 rounded-lg">
+                <button id="images-toggle" class="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-regular fa-images text-green-500"></i>
+                        <span class="text-sm font-medium text-gray-800">Images</span>
+                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">12</span>
+                    </div>
+                    <i id="images-chevron" class="fa-solid fa-chevron-right text-gray-400 text-xs transition-transform"></i>
+                </button>
+                <div id="images-content" class="hidden border-t border-gray-100 p-3 bg-gray-50">
+                    <div class="space-y-2">
+                        <div class="flex items-center space-x-2 p-2 hover:bg-white rounded-lg cursor-pointer">
+                            <i class="fa-regular fa-file-image text-green-500 text-sm"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 truncate">dashboard_mockup.png</p>
+                                <p class="text-xs text-gray-500">1.2 MB • Today</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 hover:bg-white rounded-lg cursor-pointer">
+                            <i class="fa-regular fa-file-image text-green-500 text-sm"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 truncate">user_flow_diagram.jpg</p>
+                                <p class="text-xs text-gray-500">856 KB • Yesterday</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 hover:bg-white rounded-lg cursor-pointer">
+                            <i class="fa-regular fa-file-image text-green-500 text-sm"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 truncate">wireframe_v3.png</p>
+                                <p class="text-xs text-gray-500">2.1 MB • 2 days ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 hover:bg-white rounded-lg cursor-pointer">
+                            <i class="fa-regular fa-file-image text-green-500 text-sm"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 truncate">logo_variations.png</p>
+                                <p class="text-xs text-gray-500">934 KB • 3 days ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 hover:bg-white rounded-lg cursor-pointer">
+                            <i class="fa-regular fa-file-image text-green-500 text-sm"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 truncate">color_palette.jpg</p>
+                                <p class="text-xs text-gray-500">445 KB • 3 days ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 hover:bg-white rounded-lg cursor-pointer">
+                            <i class="fa-regular fa-file-image text-green-500 text-sm"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 truncate">button_states.png</p>
+                                <p class="text-xs text-gray-500">678 KB • 4 days ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 hover:bg-white rounded-lg cursor-pointer">
+                            <i class="fa-regular fa-file-image text-green-500 text-sm"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 truncate">navigation_icons.svg</p>
+                                <p class="text-xs text-gray-500">123 KB • 5 days ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 hover:bg-white rounded-lg cursor-pointer">
+                            <i class="fa-regular fa-file-image text-green-500 text-sm"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 truncate">mobile_responsive.png</p>
+                                <p class="text-xs text-gray-500">1.8 MB • 1 week ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 hover:bg-white rounded-lg cursor-pointer">
+                            <i class="fa-regular fa-file-image text-green-500 text-sm"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 truncate">user_personas.jpg</p>
+                                <p class="text-xs text-gray-500">1.4 MB • 1 week ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 hover:bg-white rounded-lg cursor-pointer">
+                            <i class="fa-regular fa-file-image text-green-500 text-sm"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 truncate">component_library.png</p>
+                                <p class="text-xs text-gray-500">2.3 MB • 1 week ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 hover:bg-white rounded-lg cursor-pointer">
+                            <i class="fa-regular fa-file-image text-green-500 text-sm"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 truncate">style_guide.png</p>
+                                <p class="text-xs text-gray-500">1.7 MB • 2 weeks ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 hover:bg-white rounded-lg cursor-pointer">
+                            <i class="fa-regular fa-file-image text-green-500 text-sm"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 truncate">prototype_screens.jpg</p>
+                                <p class="text-xs text-gray-500">3.1 MB • 2 weeks ago</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Excel -->
+            <div class="border border-gray-100 rounded-lg">
+                <button class="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-regular fa-file-excel text-emerald-500"></i>
+                        <span class="text-sm font-medium text-gray-800">Excel</span>
+                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">8</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-gray-400 text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Word -->
+            <div class="border border-gray-100 rounded-lg">
+                <button class="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-regular fa-file-word text-blue-600"></i>
+                        <span class="text-sm font-medium text-gray-800">Word</span>
+                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">5</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-gray-400 text-xs"></i>
+                </button>
+            </div>
+
+            <!-- SVG -->
+            <div class="border border-gray-100 rounded-lg">
+                <button class="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-regular fa-file-code text-purple-500"></i>
+                        <span class="text-sm font-medium text-gray-800">SVG</span>
+                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">15</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-gray-400 text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+    </aside>
+    <div id="sidebar-backdrop" aria-hidden="true"></div>
+
+</div>
+
+<!-- Footer -->
+<div id="footer"></div>
+
+<script>
+(function () {
+    const PAGE_KEY = 'chat-product-requirements';
+    let initialized = false;
+
+    const init = () => {
+        if (initialized) {
+            return;
+        }
+
+            initialized = true;
+            const imagesToggle = document.getElementById('images-toggle');
+            const imagesChevron = document.getElementById('images-chevron');
+            const imagesContent = document.getElementById('images-content');
+
+            imagesToggle.addEventListener('click', () => {
+                const isHidden = imagesContent.classList.contains('hidden');
+                imagesContent.classList.toggle('hidden');
+                imagesChevron.classList.toggle('rotate-90', isHidden);
+            });
+
+            const chatInput = document.getElementById('chat-input');
+            const sendButton = document.getElementById('send-button');
+            const chatMessages = document.getElementById('chat-messages');
+            const welcomeMessage = document.getElementById('welcome-message');
+            const attachmentButton = document.getElementById('attachment-button');
+            const attachmentMenu = document.getElementById('attachment-menu');
+            const fileInput = document.getElementById('file-input');
+            const attachmentPreview = document.getElementById('attachment-preview');
+            const dropOverlay = document.getElementById('drop-overlay');
+            const inputWrapper = document.getElementById('input-wrapper');
+            const commandMenu = document.getElementById('command-menu');
+            const commandList = document.getElementById('command-list');
+            const voiceToggle = document.getElementById('voice-toggle');
+            const typingIndicator = document.getElementById('typing-indicator');
+
+            const attachments = [];
+            let commandItems = [];
+            let highlightedCommandIndex = -1;
+            let currentSlashIndex = -1;
+            let isRecording = false;
+
+            const availableCommands = [
+                { name: '/update', usage: '/update [section name] [new content]', description: 'Updates a section in the BRD/log.' },
+                { name: '/remove', usage: '/remove [field/requirement name]', description: 'Removes a specific field from the current version.' },
+                { name: '/delete', usage: '/delete [version/entry name]', description: 'Deletes an entire version or entry.' },
+                { name: '/cancel', usage: '/cancel [last action]', description: 'Cancels or rolls back the most recent change.' },
+                { name: '/add', usage: '/add [new field or section]', description: 'Inserts a new requirement or section.' },
+                { name: '/generate', usage: '/generate [new version name]', description: 'Creates a new version based on edits.' }
+            ];
+
+            const formatFileSize = (bytes) => {
+                const units = ['B', 'KB', 'MB', 'GB'];
+                let size = bytes;
+                let unitIndex = 0;
+                while (size >= 1024 && unitIndex < units.length - 1) {
+                    size /= 1024;
+                    unitIndex += 1;
+                }
+                return `${size.toFixed(size >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+            };
+
+            const renderAttachments = () => {
+                attachmentPreview.innerHTML = '';
+                if (!attachments.length) {
+                    attachmentPreview.classList.add('hidden');
+                    return;
+                }
+                attachmentPreview.classList.remove('hidden');
+                attachments.forEach((item, index) => {
+                    const chip = document.createElement('div');
+                    chip.className = 'attachment-chip flex items-center space-x-2 bg-navy/5 text-gray-700 border border-navy/10 rounded-full px-3 py-2';
+                    const icon = document.createElement('i');
+                    icon.className = item.type === 'file' ? 'fa-regular fa-file text-navy text-xs' : item.type === 'link' ? 'fa-solid fa-link text-navy text-xs' : 'fa-solid fa-note-sticky text-navy text-xs';
+                    const label = document.createElement('span');
+                    label.className = 'text-xs font-medium truncate max-w-[140px]';
+                    label.textContent = item.label;
+                    const removeButton = document.createElement('button');
+                    removeButton.className = 'text-xs text-gray-400 hover:text-navy transition-colors';
+                    removeButton.setAttribute('data-remove', index);
+                    removeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                    chip.appendChild(icon);
+                    chip.appendChild(label);
+                    if (item.detail) {
+                        const detail = document.createElement('span');
+                        detail.className = 'text-[10px] text-gray-500';
+                        detail.textContent = item.detail;
+                        chip.appendChild(detail);
+                    }
+                    chip.appendChild(removeButton);
+                    attachmentPreview.appendChild(chip);
+                });
+            };
+
+            attachmentPreview.addEventListener('click', (event) => {
+                const button = event.target.closest('button[data-remove]');
+                if (!button) return;
+                const index = Number(button.getAttribute('data-remove'));
+                attachments.splice(index, 1);
+                renderAttachments();
+            });
+
+            const addAttachment = (item) => {
+                attachments.push(item);
+                renderAttachments();
+            };
+
+            const handleFiles = (files) => {
+                Array.from(files).forEach((file) => {
+                    addAttachment({
+                        type: 'file',
+                        label: file.name,
+                        detail: formatFileSize(file.size),
+                        file
+                    });
+                });
+            };
+
+            const closeAttachmentMenu = () => {
+                attachmentMenu.classList.add('hidden');
+            };
+
+            const toggleAttachmentMenu = (event) => {
+                event.stopPropagation();
+                attachmentMenu.classList.toggle('hidden');
+                if (!attachmentMenu.classList.contains('hidden')) {
+                    closeCommandMenu();
+                }
+            };
+
+            attachmentButton.addEventListener('click', toggleAttachmentMenu);
+
+            attachmentMenu.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const actionButton = event.target.closest('button[data-action]');
+                if (!actionButton) return;
+                const action = actionButton.getAttribute('data-action');
+                closeAttachmentMenu();
+                if (action === 'upload') {
+                    fileInput.click();
+                } else if (action === 'link') {
+                    const link = prompt('Paste the link you want to attach');
+                    if (link) {
+                        addAttachment({ type: 'link', label: link, detail: '', url: link });
+                    }
+                } else if (action === 'note') {
+                    const note = prompt('Add a quick note for the assistant');
+                    if (note) {
+                        addAttachment({ type: 'note', label: note.length > 42 ? `${note.slice(0, 39)}…` : note, detail: '', note });
+                    }
+                }
+            });
+
+            fileInput.addEventListener('change', (event) => {
+                handleFiles(event.target.files);
+                fileInput.value = '';
+            });
+
+            const showDropOverlay = () => dropOverlay.classList.remove('hidden');
+            const hideDropOverlay = () => dropOverlay.classList.add('hidden');
+
+            const dropTargets = [inputWrapper, dropOverlay].filter(Boolean);
+
+            ['dragenter', 'dragover'].forEach((type) => {
+                dropTargets.forEach((target) => {
+                    target.addEventListener(type, (event) => {
+                        event.preventDefault();
+                        showDropOverlay();
+                    });
+                });
+            });
+
+            ['dragleave', 'dragend'].forEach((type) => {
+                dropTargets.forEach((target) => {
+                    target.addEventListener(type, (event) => {
+                        if (event.relatedTarget && inputWrapper.contains(event.relatedTarget)) return;
+                        hideDropOverlay();
+                    });
+                });
+            });
+
+            const processDrop = (event) => {
+                event.preventDefault();
+                hideDropOverlay();
+                if (event.dataTransfer?.files?.length) {
+                    handleFiles(event.dataTransfer.files);
+                }
+            };
+
+            dropTargets.forEach((target) => target.addEventListener('drop', processDrop));
+
+            document.addEventListener('dragover', (event) => {
+                event.preventDefault();
+            });
+
+            document.addEventListener('drop', (event) => {
+                event.preventDefault();
+            });
+
+            const showTypingIndicator = () => {
+                if (!typingIndicator) return;
+                typingIndicator.classList.remove('hidden');
+                chatMessages.appendChild(typingIndicator);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            };
+
+            const hideTypingIndicator = () => {
+                if (!typingIndicator) return;
+                typingIndicator.classList.add('hidden');
+            };
+
+            const autoResize = () => {
+                chatInput.style.height = 'auto';
+                chatInput.style.height = `${Math.min(chatInput.scrollHeight, 160)}px`;
+            };
+
+            const closeCommandMenu = () => {
+                commandMenu.classList.add('hidden');
+                commandItems = [];
+                highlightedCommandIndex = -1;
+                currentSlashIndex = -1;
+            };
+
+            const updateCommandHighlight = () => {
+                const items = commandList.querySelectorAll('li[data-index]');
+                items.forEach((item) => item.classList.remove('active', 'bg-navy/5'));
+                if (highlightedCommandIndex >= 0 && items[highlightedCommandIndex]) {
+                    items[highlightedCommandIndex].classList.add('active', 'bg-navy/5');
+                }
+            };
+
+            const renderCommandMenu = (commands) => {
+                commandList.innerHTML = '';
+                if (!commands.length) {
+                    const emptyState = document.createElement('li');
+                    emptyState.className = 'px-4 py-2 text-xs text-gray-500';
+                    emptyState.textContent = 'No commands match your search.';
+                    commandList.appendChild(emptyState);
+                    highlightedCommandIndex = -1;
+                    commandMenu.classList.remove('hidden');
+                    return;
+                }
+                commands.forEach((command, index) => {
+                    const item = document.createElement('li');
+                    item.setAttribute('data-index', index);
+                    item.className = 'command-menu-item cursor-pointer px-4 py-2 transition-colors hover:bg-navy/5';
+                    item.innerHTML = `
+                        <p class="text-sm font-medium text-gray-800">${command.name}</p>
+                        <p class="text-xs text-gray-500 mt-1">${command.description}</p>
+                        <p class="text-[11px] text-gray-400 mt-1">Usage: ${command.usage}</p>
+                    `;
+                    commandList.appendChild(item);
+                });
+                highlightedCommandIndex = 0;
+                commandMenu.classList.remove('hidden');
+                updateCommandHighlight();
+            };
+
+            const evaluateSlashCommands = () => {
+                const cursor = chatInput.selectionStart;
+                const value = chatInput.value;
+                const upToCursor = value.slice(0, cursor);
+                const slashIndex = upToCursor.lastIndexOf('/');
+                if (slashIndex === -1) {
+                    closeCommandMenu();
+                    return;
+                }
+                const charBeforeSlash = slashIndex === 0 ? ' ' : upToCursor[slashIndex - 1];
+                if (!/\s|\n/.test(charBeforeSlash)) {
+                    closeCommandMenu();
+                    return;
+                }
+                const query = upToCursor.slice(slashIndex + 1);
+                if (query.includes(' ')) {
+                    closeCommandMenu();
+                    return;
+                }
+                currentSlashIndex = slashIndex;
+                const filtered = availableCommands.filter((command) =>
+                    command.name.toLowerCase().includes(query.toLowerCase()) ||
+                    command.usage.toLowerCase().includes(query.toLowerCase())
+                );
+                commandItems = filtered;
+                renderCommandMenu(filtered);
+            };
+
+            const insertCommand = (command) => {
+                if (currentSlashIndex < 0) return;
+                const value = chatInput.value;
+                const before = value.slice(0, currentSlashIndex);
+                const after = value.slice(chatInput.selectionStart);
+                chatInput.value = `${before}${command.usage} ${after}`;
+                const newCursor = before.length + command.usage.length + 1;
+                chatInput.focus();
+                chatInput.setSelectionRange(newCursor, newCursor);
+                closeCommandMenu();
+                chatInput.dispatchEvent(new Event('input'));
+            };
+
+            commandList.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+            });
+
+            commandList.addEventListener('click', (event) => {
+                const item = event.target.closest('li[data-index]');
+                if (!item) return;
+                const index = Number(item.getAttribute('data-index'));
+                insertCommand(commandItems[index]);
+            });
+
+            const handleSend = () => {
+                const rawText = chatInput.value;
+                const trimmedText = rawText.trim();
+                if (!trimmedText && attachments.length === 0) return;
+
+                if (welcomeMessage) {
+                    welcomeMessage.classList.add('hidden');
+                }
+
+                closeAttachmentMenu();
+                closeCommandMenu();
+
+                const attachmentsSummary = attachments.length;
+
+                const messageWrapper = document.createElement('div');
+                messageWrapper.className = 'flex justify-end mt-6';
+                const innerWrapper = document.createElement('div');
+                innerWrapper.className = 'max-w-2xl';
+                const bubble = document.createElement('div');
+                bubble.className = 'bg-navy text-white rounded-2xl rounded-br-md px-4 py-3 chat-bubble whitespace-pre-wrap text-sm';
+                bubble.textContent = trimmedText || 'Sent attachments';
+                innerWrapper.appendChild(bubble);
+
+                if (attachments.length) {
+                    const attachmentContainer = document.createElement('div');
+                    attachmentContainer.className = 'mt-3 space-y-2';
+                    attachments.forEach((item) => {
+                        const attachmentItem = document.createElement('div');
+                        attachmentItem.className = 'flex items-center space-x-2 bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs';
+                        const icon = document.createElement('i');
+                        icon.className = item.type === 'file' ? 'fa-regular fa-file text-white/80' : item.type === 'link' ? 'fa-solid fa-link text-white/80' : 'fa-solid fa-note-sticky text-white/80';
+                        const label = document.createElement('span');
+                        label.className = 'font-medium text-white';
+                        if (item.type === 'file' && item.file) {
+                            const link = document.createElement('a');
+                            link.href = URL.createObjectURL(item.file);
+                            link.download = item.file.name;
+                            link.textContent = item.label;
+                            link.className = 'underline decoration-white/40 hover:decoration-white';
+                            link.addEventListener('click', () => {
+                                setTimeout(() => {
+                                    URL.revokeObjectURL(link.href);
+                                }, 1000);
+                            });
+                            label.appendChild(link);
+                        } else if (item.type === 'link' && item.url) {
+                            const link = document.createElement('a');
+                            link.href = item.url;
+                            link.target = '_blank';
+                            link.rel = 'noopener noreferrer';
+                            link.textContent = item.label;
+                            link.className = 'underline decoration-white/40 hover:decoration-white';
+                            label.appendChild(link);
+                        } else {
+                            label.textContent = item.note ? item.note : item.label;
+                        }
+                        attachmentItem.appendChild(icon);
+                        attachmentItem.appendChild(label);
+                        if (item.detail) {
+                            const detail = document.createElement('span');
+                            detail.className = 'text-white/70';
+                            detail.textContent = item.detail;
+                            attachmentItem.appendChild(detail);
+                        }
+                        attachmentContainer.appendChild(attachmentItem);
+                    });
+                    innerWrapper.appendChild(attachmentContainer);
+                }
+
+                const meta = document.createElement('div');
+                meta.className = 'flex items-center justify-end space-x-2 mt-2';
+                const time = document.createElement('span');
+                time.className = 'text-xs text-gray-500';
+                time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                meta.appendChild(time);
+                innerWrapper.appendChild(meta);
+
+                messageWrapper.appendChild(innerWrapper);
+                chatMessages.appendChild(messageWrapper);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                chatInput.value = '';
+                attachments.length = 0;
+                renderAttachments();
+                autoResize();
+
+                showTypingIndicator();
+                setTimeout(() => {
+                    hideTypingIndicator();
+                    const aiWrapper = document.createElement('div');
+                    aiWrapper.className = 'flex justify-start mt-6';
+                    const aiInner = document.createElement('div');
+                    aiInner.className = 'max-w-2xl';
+                    const aiContentWrapper = document.createElement('div');
+                    aiContentWrapper.className = 'flex items-start space-x-3';
+                    const avatar = document.createElement('div');
+                    avatar.className = 'w-8 h-8 bg-sky rounded-full flex items-center justify-center flex-shrink-0 mt-1';
+                    avatar.innerHTML = '<i class="fa-solid fa-robot text-white text-sm"></i>';
+                    const aiBubble = document.createElement('div');
+                    aiBubble.className = 'bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 chat-bubble text-sm text-gray-800 whitespace-pre-wrap';
+                    const acknowledgement = trimmedText
+                        ? `Got it! I\'ll log the following update: \n\n${trimmedText}`
+                        : 'Thanks for the attachments. I\'ll review them and prepare the necessary updates.';
+                    aiBubble.textContent = acknowledgement;
+                    if (attachmentsSummary) {
+                        const attachmentNote = document.createElement('p');
+                        attachmentNote.className = 'text-sm text-gray-600 mt-3';
+                        attachmentNote.textContent = `I\'ll make sure to reference the ${attachmentsSummary} attachment${attachmentsSummary > 1 ? 's' : ''} you provided.`;
+                        aiBubble.appendChild(attachmentNote);
+                    }
+                    aiContentWrapper.appendChild(avatar);
+                    aiContentWrapper.appendChild(aiBubble);
+                    aiInner.appendChild(aiContentWrapper);
+                    const aiMeta = document.createElement('div');
+                    aiMeta.className = 'flex items-center space-x-2 mt-2 ml-11';
+                    const aiTime = document.createElement('span');
+                    aiTime.className = 'text-xs text-gray-500';
+                    aiTime.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    aiMeta.appendChild(aiTime);
+                    aiInner.appendChild(aiMeta);
+                    aiWrapper.appendChild(aiInner);
+                    chatMessages.appendChild(aiWrapper);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }, 900);
+            };
+
+            sendButton.addEventListener('click', handleSend);
+
+            chatInput.addEventListener('keydown', (event) => {
+                if (!commandMenu.classList.contains('hidden') && commandItems.length) {
+                    if (event.key === 'ArrowDown') {
+                        event.preventDefault();
+                        highlightedCommandIndex = (highlightedCommandIndex + 1) % commandItems.length;
+                        updateCommandHighlight();
+                        return;
+                    }
+                    if (event.key === 'ArrowUp') {
+                        event.preventDefault();
+                        highlightedCommandIndex = (highlightedCommandIndex - 1 + commandItems.length) % commandItems.length;
+                        updateCommandHighlight();
+                        return;
+                    }
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        insertCommand(commandItems[highlightedCommandIndex]);
+                        return;
+                    }
+                    if (event.key === 'Escape') {
+                        closeCommandMenu();
+                        return;
+                    }
+                }
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    handleSend();
+                }
+            });
+
+            chatInput.addEventListener('input', () => {
+                autoResize();
+                evaluateSlashCommands();
+            });
+
+            chatInput.addEventListener('focus', () => {
+                closeAttachmentMenu();
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!attachmentMenu.contains(event.target) && event.target !== attachmentButton) {
+                    closeAttachmentMenu();
+                }
+                if (!commandMenu.contains(event.target) && event.target !== chatInput) {
+                    closeCommandMenu();
+                }
+            });
+
+            voiceToggle.addEventListener('click', () => {
+                isRecording = !isRecording;
+                voiceToggle.classList.toggle('bg-navy', isRecording);
+                voiceToggle.classList.toggle('text-white', isRecording);
+                const icon = voiceToggle.querySelector('i');
+                if (isRecording) {
+                    icon.classList.remove('fa-microphone');
+                    icon.classList.add('fa-stop');
+                    voiceToggle.setAttribute('aria-pressed', 'true');
+                } else {
+                    icon.classList.remove('fa-stop');
+                    icon.classList.add('fa-microphone');
+                    voiceToggle.setAttribute('aria-pressed', 'false');
+                }
+            });
+
+            autoResize();
+            hideTypingIndicator();
+    };
+
+    const resetAndInit = () => {
+        initialized = false;
+        init();
+    };
+
+    const handleInitEvent = (event) => {
+        const targetPage = event?.detail?.page;
+        if (targetPage && targetPage !== PAGE_KEY) {
+            return;
+        }
+        resetAndInit();
+    };
+
+    const attach = () => {
+        document.addEventListener('ai-assistant:init-page', handleInitEvent);
+    };
+
+    const detach = () => {
+        document.removeEventListener('ai-assistant:init-page', handleInitEvent);
+        initialized = false;
+    };
+
+    window.AIAssistant = window.AIAssistant || {};
+    window.AIAssistant.pages = window.AIAssistant.pages || {};
+    const previous = window.AIAssistant.pages[PAGE_KEY];
+    if (previous && typeof previous.teardown === 'function') {
+        previous.teardown();
+    }
+
+    window.AIAssistant.pages[PAGE_KEY] = {
+        init: resetAndInit,
+        teardown: detach,
+    };
+
+    attach();
+
+    const shouldAutoInit = !window.AIAssistant?.navigation?.isNavigating;
+    if (shouldAutoInit) {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init, { once: true });
+        } else {
+            init();
+        }
+    }
+})();
+</script>
+
+
+</body></html>
