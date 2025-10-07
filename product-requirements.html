@@ -116,6 +116,8 @@
   </style></head>
 <body class="bg-gray-50" data-active-sidebar-link="chat-product-requirements">
 
+<div id="notification-container" class="fixed top-4 right-4 z-50 space-y-3"></div>
+
 <div id="ai-tool-interface" class="relative flex flex-col lg:flex-row min-h-screen lg:h-screen w-full bg-gray-50 text-gray-900 font-inter">
 
     <!-- Sidebar -->
@@ -240,13 +242,13 @@
                 </button>
             </div>
             <div data-topbar-actions>
-                <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all">
+                <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all" data-topbar-action="share">
                     <i class="fa-solid fa-share-nodes"></i>
                 </button>
-                <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all">
+                <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all" data-topbar-action="download">
                     <i class="fa-solid fa-download"></i>
                 </button>
-                <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all">
+                <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all" data-topbar-action="more">
                     <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
             </div>
@@ -283,7 +285,7 @@
                         <div class="w-8 h-8 bg-sky rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                             <i class="fa-solid fa-robot text-white text-sm"></i>
                         </div>
-                        <div class="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 chat-bubble">
+                        <div class="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 chat-bubble" id="ai-response-1-bubble" data-message-bubble>
                             <p class="text-sm text-gray-800 mb-3">I'd be happy to help you create a UI revamp plan! Based on your requirements for a UX Pilot-like interface, here's a comprehensive approach:</p>
                             
                             <div class="space-y-3">
@@ -321,16 +323,16 @@
                             <p class="text-sm text-gray-800 mt-3">Would you like me to elaborate on any specific aspect or help you prioritize these improvements?</p>
                         </div>
                     </div>
-                    <div class="flex items-center space-x-2 mt-2 ml-11">
+                    <div class="flex items-center space-x-2 mt-2 ml-11" data-message-meta="ai-response-1">
                         <span class="text-xs text-gray-500">2:35 PM</span>
                         <div class="flex items-center space-x-1">
-                            <button class="p-1 text-gray-400 hover:text-gray-600 rounded">
+                            <button class="p-1 text-gray-400 hover:text-gray-600 rounded" data-message-action="like" data-message-target="ai-response-1-bubble">
                                 <i class="fa-regular fa-thumbs-up text-xs"></i>
                             </button>
-                            <button class="p-1 text-gray-400 hover:text-gray-600 rounded">
+                            <button class="p-1 text-gray-400 hover:text-gray-600 rounded" data-message-action="dislike" data-message-target="ai-response-1-bubble">
                                 <i class="fa-regular fa-thumbs-down text-xs"></i>
                             </button>
-                            <button class="p-1 text-gray-400 hover:text-gray-600 rounded">
+                            <button class="p-1 text-gray-400 hover:text-gray-600 rounded" data-message-action="copy" data-message-target="ai-response-1-bubble">
                                 <i class="fa-regular fa-copy text-xs"></i>
                             </button>
                         </div>
@@ -410,6 +412,55 @@
                     </button>
                 </div>
             </div>
+            <div id="research-toolbar" class="flex flex-wrap items-center justify-between gap-2 mt-3 px-2">
+                <div class="flex items-center gap-2">
+                    <div class="relative">
+                        <button id="research-button" type="button" class="flex items-center space-x-2 px-3 py-1.5 rounded-full text-sm font-medium text-navy bg-blue-100/60 hover:bg-blue-100 transition-all">
+                            <i class="fa-solid fa-bullhorn text-xs"></i>
+                            <span>Research</span>
+                        </button>
+                        <div id="research-menu" class="hidden absolute left-0 mt-2 w-60 bg-white border border-gray-200 rounded-xl shadow-xl z-40">
+                            <button class="flex w-full items-start space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors" data-research-action="summary">
+                                <i class="fa-solid fa-list-check text-navy mt-0.5"></i>
+                                <span>Summarize the last exchange</span>
+                            </button>
+                            <button class="flex w-full items-start space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors" data-research-action="next-steps">
+                                <i class="fa-solid fa-road text-navy mt-0.5"></i>
+                                <span>Suggest next steps for the plan</span>
+                            </button>
+                            <button class="flex w-full items-start space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors" data-research-action="risks">
+                                <i class="fa-solid fa-triangle-exclamation text-navy mt-0.5"></i>
+                                <span>Highlight potential risks</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <button id="mode-toggle" type="button" class="flex items-center space-x-2 px-3 py-1.5 rounded-full text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all">
+                            <i class="fa-solid fa-globe"></i>
+                            <span id="mode-label">ChatGPT 4</span>
+                            <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </button>
+                        <div id="mode-menu" class="hidden absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-40">
+                            <button class="flex w-full items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" data-mode="ChatGPT 4">
+                                <span>ChatGPT 4</span>
+                                <i class="fa-solid fa-check text-navy hidden" data-mode-check></i>
+                            </button>
+                            <button class="flex w-full items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" data-mode="Deep Research">
+                                <span>Deep Research</span>
+                                <i class="fa-solid fa-check text-navy hidden" data-mode-check></i>
+                            </button>
+                            <button class="flex w-full items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" data-mode="Creative Partner">
+                                <span>Creative Partner</span>
+                                <i class="fa-solid fa-check text-navy hidden" data-mode-check></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button id="download-chat-button" type="button" class="flex items-center space-x-2 px-3 py-1.5 rounded-full text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all">
+                    <i class="fa-solid fa-download text-xs"></i>
+                    <span>Download chat</span>
+                </button>
+            </div>
         </div>
         <input id="file-input" type="file" multiple class="hidden" />
     </div>
@@ -426,29 +477,29 @@
     <!-- Recent Files -->
     <div class="bg-white rounded-xl p-4 border border-gray-200">
         <h4 class="font-semibold text-gray-800 mb-3">Recent Files</h4>
-        <div class="space-y-2">
-            <div class="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+        <div class="space-y-2" data-recent-files>
+            <div class="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer" data-file-item data-file-name="UI_Guidelines.pdf" data-file-type="PDF" data-file-size="2.4 MB" data-file-updated="2 hours ago">
                 <i class="fa-regular fa-file-pdf text-red-500"></i>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-gray-800 truncate">UI_Guidelines.pdf</p>
                     <p class="text-xs text-gray-500">2 hours ago</p>
                 </div>
             </div>
-            <div class="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+            <div class="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer" data-file-item data-file-name="components.js" data-file-type="Code" data-file-size="18 KB" data-file-updated="1 day ago">
                 <i class="fa-regular fa-file-code text-blue-500"></i>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-gray-800 truncate">components.js</p>
                     <p class="text-xs text-gray-500">1 day ago</p>
                 </div>
             </div>
-            <div class="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+            <div class="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer" data-file-item data-file-name="mockup_v2.png" data-file-type="Image" data-file-size="3.1 MB" data-file-updated="3 days ago">
                 <i class="fa-regular fa-file-image text-green-500"></i>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-gray-800 truncate">mockup_v2.png</p>
                     <p class="text-xs text-gray-500">3 days ago</p>
                 </div>
             </div>
-            <div class="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+            <div class="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer" data-file-item data-file-name="data_analysis.xlsx" data-file-type="Spreadsheet" data-file-size="712 KB" data-file-updated="2 days ago">
                 <i class="fa-regular fa-file-excel text-emerald-500"></i>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-gray-800 truncate">data_analysis.xlsx</p>
@@ -465,13 +516,13 @@
         <!-- Filter by Keyword -->
         <div class="relative mb-4">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-            <input type="text" placeholder="Search files by type..." class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm placeholder-gray-500 focus:ring-2 focus:ring-navy/50 focus:border-navy focus:outline-none">
+            <input type="text" placeholder="Search files by type..." class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm placeholder-gray-500 focus:ring-2 focus:ring-navy/50 focus:border-navy focus:outline-none" data-file-search>
         </div>
 
         <div class="space-y-3">
             <!-- Images -->
             <div class="border border-gray-100 rounded-lg">
-                <button id="images-toggle" class="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
+                <button id="images-toggle" class="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg" data-file-category-toggle="Images">
                     <div class="flex items-center space-x-2">
                         <i class="fa-regular fa-images text-green-500"></i>
                         <span class="text-sm font-medium text-gray-800">Images</span>
@@ -479,7 +530,7 @@
                     </div>
                     <i id="images-chevron" class="fa-solid fa-chevron-right text-gray-400 text-xs transition-transform"></i>
                 </button>
-                <div id="images-content" class="hidden border-t border-gray-100 p-3 bg-gray-50">
+                <div id="images-content" class="hidden border-t border-gray-100 p-3 bg-gray-50" data-file-section="Images">
                     <div class="space-y-2">
                         <div class="flex items-center space-x-2 p-2 hover:bg-white rounded-lg cursor-pointer">
                             <i class="fa-regular fa-file-image text-green-500 text-sm"></i>
@@ -571,7 +622,7 @@
 
             <!-- Excel -->
             <div class="border border-gray-100 rounded-lg">
-                <button class="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
+                <button class="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg" data-file-category="Excel">
                     <div class="flex items-center space-x-2">
                         <i class="fa-regular fa-file-excel text-emerald-500"></i>
                         <span class="text-sm font-medium text-gray-800">Excel</span>
@@ -583,7 +634,7 @@
 
             <!-- Word -->
             <div class="border border-gray-100 rounded-lg">
-                <button class="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
+                <button class="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg" data-file-category="Word">
                     <div class="flex items-center space-x-2">
                         <i class="fa-regular fa-file-word text-blue-600"></i>
                         <span class="text-sm font-medium text-gray-800">Word</span>
@@ -595,7 +646,7 @@
 
             <!-- SVG -->
             <div class="border border-gray-100 rounded-lg">
-                <button class="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
+                <button class="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg" data-file-category="SVG">
                     <div class="flex items-center space-x-2">
                         <i class="fa-regular fa-file-code text-purple-500"></i>
                         <span class="text-sm font-medium text-gray-800">SVG</span>
@@ -618,38 +669,159 @@
 <script>
 (function () {
     const PAGE_KEY = 'chat-product-requirements';
+    const MODE_STORAGE_KEY = 'ai-assistant-product-requirements-mode';
     let initialized = false;
+    let notificationContainerRef = null;
+    let topbarMenu = null;
+
+    const getStoredMode = () => {
+        try {
+            const stored = localStorage.getItem(MODE_STORAGE_KEY);
+            return stored || 'ChatGPT 4';
+        } catch (error) {
+            return 'ChatGPT 4';
+        }
+    };
+
+    const persistMode = (mode) => {
+        try {
+            localStorage.setItem(MODE_STORAGE_KEY, mode);
+        } catch (error) {
+            /* noop */
+        }
+    };
+
+    let activeMode = getStoredMode();
+
+    const TOAST_VARIANTS = {
+        info: { borderClass: 'border-l-4 border-navy/60', iconClass: 'fa-circle-info text-navy' },
+        success: { borderClass: 'border-l-4 border-emerald-500', iconClass: 'fa-circle-check text-emerald-500' },
+        warning: { borderClass: 'border-l-4 border-amber-500', iconClass: 'fa-triangle-exclamation text-amber-500' },
+        danger: { borderClass: 'border-l-4 border-rose-500', iconClass: 'fa-circle-exclamation text-rose-500' },
+    };
+
+    const ensureNotificationContainer = () => {
+        if (!notificationContainerRef) {
+            notificationContainerRef = document.getElementById('notification-container');
+        }
+        return notificationContainerRef;
+    };
+
+    const showToast = (title, { variant = 'info', description = null } = {}) => {
+        const container = ensureNotificationContainer();
+        if (!container) {
+            return;
+        }
+
+        const config = TOAST_VARIANTS[variant] || TOAST_VARIANTS.info;
+        const toast = document.createElement('div');
+        toast.className = `toast flex items-start space-x-3 rounded-xl px-4 py-3 shadow-lg bg-white text-gray-800 ${config.borderClass} transition-all duration-200 ease-out opacity-0 translate-x-2`;
+        toast.setAttribute('role', 'status');
+
+        const iconWrapper = document.createElement('div');
+        iconWrapper.className = 'flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 flex-shrink-0';
+        iconWrapper.innerHTML = `<i class="fa-solid ${config.iconClass}"></i>`;
+
+        const content = document.createElement('div');
+        content.className = 'flex-1 min-w-0';
+        const titleEl = document.createElement('p');
+        titleEl.className = 'text-sm font-semibold text-gray-800';
+        titleEl.textContent = title;
+        content.appendChild(titleEl);
+        if (description) {
+            const descriptionEl = document.createElement('p');
+            descriptionEl.className = 'text-xs text-gray-500 mt-1';
+            descriptionEl.textContent = description;
+            content.appendChild(descriptionEl);
+        }
+
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'text-gray-400 hover:text-gray-600 mt-1';
+        closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+        closeButton.addEventListener('click', () => {
+            toast.classList.add('opacity-0', 'translate-x-2');
+            setTimeout(() => toast.remove(), 180);
+        });
+
+        toast.appendChild(iconWrapper);
+        toast.appendChild(content);
+        toast.appendChild(closeButton);
+
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            toast.classList.remove('opacity-0', 'translate-x-2');
+        });
+
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-x-2');
+            setTimeout(() => toast.remove(), 200);
+        }, 3600);
+    };
+
+    const hideMenu = (menu) => {
+        if (menu) {
+            menu.classList.add('hidden');
+        }
+    };
 
     const init = () => {
         if (initialized) {
             return;
         }
 
-            initialized = true;
-            const imagesToggle = document.getElementById('images-toggle');
-            const imagesChevron = document.getElementById('images-chevron');
-            const imagesContent = document.getElementById('images-content');
+        initialized = true;
 
+        ensureNotificationContainer();
+
+        const chatHistoryApi = window.AIAssistant?.chatHistory;
+        if (chatHistoryApi && typeof chatHistoryApi.createChat === 'function') {
+            chatHistoryApi.createChat({
+                id: 'chat-product-requirements-research',
+                title: 'Product Research',
+                href: 'product-requirements.html#research',
+            });
+        }
+
+        const imagesToggle = document.getElementById('images-toggle');
+        const imagesChevron = document.getElementById('images-chevron');
+        const imagesContent = document.getElementById('images-content');
+
+        if (imagesToggle && imagesChevron && imagesContent) {
             imagesToggle.addEventListener('click', () => {
                 const isHidden = imagesContent.classList.contains('hidden');
                 imagesContent.classList.toggle('hidden');
                 imagesChevron.classList.toggle('rotate-90', isHidden);
+                showToast(isHidden ? 'Images expanded' : 'Images collapsed', { variant: 'info' });
             });
+        }
 
-            const chatInput = document.getElementById('chat-input');
-            const sendButton = document.getElementById('send-button');
-            const chatMessages = document.getElementById('chat-messages');
-            const welcomeMessage = document.getElementById('welcome-message');
-            const attachmentButton = document.getElementById('attachment-button');
-            const attachmentMenu = document.getElementById('attachment-menu');
-            const fileInput = document.getElementById('file-input');
-            const attachmentPreview = document.getElementById('attachment-preview');
-            const dropOverlay = document.getElementById('drop-overlay');
-            const inputWrapper = document.getElementById('input-wrapper');
-            const commandMenu = document.getElementById('command-menu');
-            const commandList = document.getElementById('command-list');
-            const voiceToggle = document.getElementById('voice-toggle');
-            const typingIndicator = document.getElementById('typing-indicator');
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
+        const chatMessages = document.getElementById('chat-messages');
+        const welcomeMessage = document.getElementById('welcome-message');
+        const attachmentButton = document.getElementById('attachment-button');
+        const attachmentMenu = document.getElementById('attachment-menu');
+        const fileInput = document.getElementById('file-input');
+        const attachmentPreview = document.getElementById('attachment-preview');
+        const dropOverlay = document.getElementById('drop-overlay');
+        const inputWrapper = document.getElementById('input-wrapper');
+        const commandMenu = document.getElementById('command-menu');
+        const commandList = document.getElementById('command-list');
+        const voiceToggle = document.getElementById('voice-toggle');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const researchButton = document.getElementById('research-button');
+        const researchMenu = document.getElementById('research-menu');
+        const modeToggle = document.getElementById('mode-toggle');
+        const modeMenu = document.getElementById('mode-menu');
+        const modeLabel = document.getElementById('mode-label');
+        const downloadChatButton = document.getElementById('download-chat-button');
+        const topbarActions = document.querySelector('[data-topbar-actions]');
+        const recentFileItems = document.querySelectorAll('[data-file-item]');
+        const fileSearch = document.querySelector('[data-file-search]');
+        const fileCategoryButtons = document.querySelectorAll('[data-file-category]');
+        const researchToolbar = document.getElementById('research-toolbar');
 
             const attachments = [];
             let commandItems = [];
@@ -665,6 +837,400 @@
                 { name: '/add', usage: '/add [new field or section]', description: 'Inserts a new requirement or section.' },
                 { name: '/generate', usage: '/generate [new version name]', description: 'Creates a new version based on edits.' }
             ];
+
+            const gatherConversation = () => {
+                if (!chatMessages) {
+                    return '';
+                }
+                const entries = [];
+                const bubbles = chatMessages.querySelectorAll('.chat-bubble');
+                bubbles.forEach((bubble) => {
+                    const wrapper = bubble.closest('.flex');
+                    const role = wrapper?.classList.contains('justify-end') ? 'You' : 'AI';
+                    const text = bubble.textContent.trim();
+                    if (text) {
+                        entries.push(`${role}: ${text}`);
+                    }
+                });
+                return entries.join('\n\n');
+            };
+
+            const downloadConversation = () => {
+                const transcript = gatherConversation();
+                if (!transcript) {
+                    showToast('No conversation to download yet', { variant: 'warning' });
+                    return;
+                }
+                const blob = new Blob([transcript], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `product-requirements-chat-${Date.now()}.txt`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                showToast('Chat downloaded', { variant: 'success' });
+            };
+
+            const clearGeneratedMessages = () => {
+                if (!chatMessages) {
+                    return;
+                }
+                chatMessages.querySelectorAll('[data-generated="true"]').forEach((node) => node.remove());
+                showToast('Generated responses cleared', { variant: 'success' });
+            };
+
+            const ensureTopbarMenu = () => {
+                if (topbarMenu) {
+                    return topbarMenu;
+                }
+                const menu = document.createElement('div');
+                menu.className = 'hidden fixed z-50 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[220px]';
+                menu.innerHTML = `
+                    <button type="button" class="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" data-menu-action="rename">
+                        <span>Rename chat</span>
+                        <i class="fa-solid fa-pen text-xs text-gray-400"></i>
+                    </button>
+                    <button type="button" class="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" data-menu-action="clear">
+                        <span>Clear generated responses</span>
+                        <i class="fa-solid fa-broom text-xs text-gray-400"></i>
+                    </button>
+                    <button type="button" class="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" data-menu-action="open">
+                        <span>Open conversation in new tab</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-xs text-gray-400"></i>
+                    </button>
+                `;
+                menu.addEventListener('click', (event) => {
+                    const button = event.target.closest('[data-menu-action]');
+                    if (!button) {
+                        return;
+                    }
+                    const action = button.dataset.menuAction;
+                    hideMenu(menu);
+                    if (action === 'rename') {
+                        const newTitle = window.prompt('Rename chat', 'Product Requirements');
+                        if (!newTitle) {
+                            return;
+                        }
+                        if (chatHistoryApi && typeof chatHistoryApi.renameChat === 'function') {
+                            const success = chatHistoryApi.renameChat('chat-product-requirements', newTitle);
+                            showToast(success ? 'Chat renamed' : 'Unable to rename chat', { variant: success ? 'success' : 'danger', description: newTitle });
+                        } else {
+                            showToast('Rename unavailable', { variant: 'warning' });
+                        }
+                    } else if (action === 'clear') {
+                        clearGeneratedMessages();
+                    } else if (action === 'open') {
+                        window.open(window.location.href, '_blank', 'noopener');
+                        showToast('Conversation opened in new tab', { variant: 'info' });
+                    }
+                });
+                document.body.appendChild(menu);
+                topbarMenu = menu;
+                return topbarMenu;
+            };
+
+            const hideTopbarMenu = () => {
+                hideMenu(topbarMenu);
+            };
+
+            const showTopbarMenu = (anchor) => {
+                const menu = ensureTopbarMenu();
+                if (!menu || !anchor) {
+                    return;
+                }
+                menu.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    const menuRect = menu.getBoundingClientRect();
+                    const anchorRect = anchor.getBoundingClientRect();
+                    const top = anchorRect.bottom + 8;
+                    let left = anchorRect.right - menuRect.width;
+                    if (left < 16) {
+                        left = 16;
+                    } else if (left + menuRect.width > window.innerWidth - 16) {
+                        left = window.innerWidth - menuRect.width - 16;
+                    }
+                    menu.style.top = `${Math.min(top, window.innerHeight - menuRect.height - 16)}px`;
+                    menu.style.left = `${left}px`;
+                });
+            };
+
+            const getResearchPrompt = (action) => {
+                const modeDescriptor = activeMode.toLowerCase();
+                if (action === 'summary') {
+                    return `Using ${activeMode}, summarize the latest exchange into three bullet points focusing on usability improvements.`;
+                }
+                if (action === 'next-steps') {
+                    return `With ${activeMode} as a guide, outline the next three implementation steps for the UI revamp plan.`;
+                }
+                if (action === 'risks') {
+                    return `From a ${modeDescriptor} perspective, highlight potential risks or dependencies in the revamp plan.`;
+                }
+                return '';
+            };
+
+            const applyMode = (mode, { silent = false } = {}) => {
+                activeMode = mode;
+                persistMode(mode);
+                if (modeLabel) {
+                    modeLabel.textContent = mode;
+                }
+                if (researchToolbar) {
+                    researchToolbar.dataset.mode = mode;
+                }
+                if (chatInput) {
+                    chatInput.setAttribute('placeholder', `New ${mode} chat in Product Requirements`);
+                }
+                if (modeMenu) {
+                    modeMenu.querySelectorAll('[data-mode]').forEach((button) => {
+                        const isActive = button.dataset.mode === mode;
+                        button.classList.toggle('bg-blue-50', isActive);
+                        const check = button.querySelector('[data-mode-check]');
+                        if (check) {
+                            check.classList.toggle('hidden', !isActive);
+                        }
+                    });
+                }
+                if (!silent) {
+                    showToast(`Mode switched to ${mode}`, { variant: 'info' });
+                }
+            };
+
+            const toggleResearchMenu = (event) => {
+                if (!researchMenu) {
+                    return;
+                }
+                event.preventDefault();
+                event.stopPropagation();
+                hideMenu(modeMenu);
+                researchMenu.classList.toggle('hidden');
+            };
+
+            const toggleModeMenu = (event) => {
+                if (!modeMenu) {
+                    return;
+                }
+                event.preventDefault();
+                event.stopPropagation();
+                hideMenu(researchMenu);
+                modeMenu.classList.toggle('hidden');
+            };
+
+            const handleResearchAction = (action) => {
+                const prompt = getResearchPrompt(action);
+                if (!prompt || !chatInput) {
+                    hideMenu(researchMenu);
+                    return;
+                }
+                chatInput.value = prompt;
+                autoResize();
+                chatInput.focus();
+                showToast('Research prompt inserted', { variant: 'success', description: prompt });
+                hideMenu(researchMenu);
+            };
+
+            const updateFileFilter = (term) => {
+                const query = (term || '').toLowerCase();
+                const shouldHide = (node) => {
+                    if (!node) {
+                        return;
+                    }
+                    const text = node.textContent.toLowerCase();
+                    const hidden = Boolean(query) && !text.includes(query);
+                    node.classList.toggle('hidden', hidden);
+                };
+                recentFileItems.forEach(shouldHide);
+                if (imagesContent) {
+                    imagesContent.querySelectorAll('.cursor-pointer').forEach(shouldHide);
+                }
+            };
+
+            const bindMessageActionButton = (button) => {
+                if (!button || button.dataset.messageActionBound === 'true') {
+                    return;
+                }
+                button.dataset.messageActionBound = 'true';
+                if (!button.hasAttribute('aria-pressed')) {
+                    button.setAttribute('aria-pressed', 'false');
+                }
+                button.dataset.active = button.dataset.active || 'false';
+                button.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const action = button.dataset.messageAction;
+                    const targetId = button.dataset.messageTarget;
+                    const bubble = targetId ? document.getElementById(targetId) : null;
+                    const meta = button.closest('[data-message-meta]');
+                    if (action === 'copy') {
+                        if (!bubble) {
+                            showToast('Nothing to copy yet', { variant: 'warning' });
+                            return;
+                        }
+                        const text = bubble.textContent.trim();
+                        if (!text) {
+                            showToast('Nothing to copy yet', { variant: 'warning' });
+                            return;
+                        }
+                        const copyFallback = () => {
+                            const helper = document.createElement('textarea');
+                            helper.value = text;
+                            helper.className = 'sr-only';
+                            document.body.appendChild(helper);
+                            helper.select();
+                            try {
+                                document.execCommand('copy');
+                                showToast('Message copied', { variant: 'success' });
+                            } catch (error) {
+                                showToast('Copy failed', { variant: 'danger' });
+                            } finally {
+                                document.body.removeChild(helper);
+                            }
+                        };
+                        if (navigator.clipboard?.writeText) {
+                            navigator.clipboard.writeText(text).then(() => {
+                                showToast('Message copied', { variant: 'success' });
+                            }).catch(copyFallback);
+                        } else {
+                            copyFallback();
+                        }
+                        return;
+                    }
+                    if (action === 'like' || action === 'dislike') {
+                        const currentlyActive = button.dataset.active === 'true';
+                        const nextState = !currentlyActive;
+                        button.dataset.active = nextState ? 'true' : 'false';
+                        if (nextState) {
+                            button.classList.remove('text-gray-400');
+                            button.classList.add('text-navy', 'font-semibold');
+                            showToast(`Marked as ${action}`, { variant: 'success' });
+                        } else {
+                            button.classList.add('text-gray-400');
+                            button.classList.remove('text-navy', 'font-semibold');
+                            showToast(`Removed ${action}`, { variant: 'info' });
+                        }
+                        button.setAttribute('aria-pressed', nextState ? 'true' : 'false');
+                        if (meta) {
+                            const opposite = meta.querySelector(`[data-message-action="${action === 'like' ? 'dislike' : 'like'}"]`);
+                            if (opposite) {
+                                opposite.dataset.active = 'false';
+                                opposite.classList.add('text-gray-400');
+                                opposite.classList.remove('text-navy', 'font-semibold');
+                                opposite.setAttribute('aria-pressed', 'false');
+                            }
+                        }
+                    }
+                });
+            };
+
+            document.querySelectorAll('[data-message-action]').forEach(bindMessageActionButton);
+
+            applyMode(activeMode, { silent: true });
+
+            if (modeToggle) {
+                modeToggle.addEventListener('click', toggleModeMenu);
+            }
+
+            if (modeMenu) {
+                modeMenu.addEventListener('click', (event) => {
+                    const option = event.target.closest('[data-mode]');
+                    if (!option) {
+                        return;
+                    }
+                    event.preventDefault();
+                    applyMode(option.dataset.mode);
+                    hideMenu(modeMenu);
+                });
+            }
+
+            if (researchButton) {
+                researchButton.addEventListener('click', toggleResearchMenu);
+            }
+
+            if (researchMenu) {
+                researchMenu.addEventListener('click', (event) => {
+                    const actionButton = event.target.closest('[data-research-action]');
+                    if (!actionButton) {
+                        return;
+                    }
+                    event.preventDefault();
+                    handleResearchAction(actionButton.dataset.researchAction);
+                });
+            }
+
+            if (downloadChatButton) {
+                downloadChatButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    downloadConversation();
+                });
+            }
+
+            if (fileSearch) {
+                fileSearch.addEventListener('input', (event) => {
+                    updateFileFilter(event.target.value);
+                });
+            }
+
+            fileCategoryButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    const category = button.dataset.fileCategory || 'Files';
+                    showToast(`${category} directory queued`, { variant: 'info', description: 'Launching a filtered view in the background.' });
+                });
+            });
+
+            const handleShare = async () => {
+                const transcript = gatherConversation();
+                if (!transcript) {
+                    showToast('No conversation to share yet', { variant: 'warning' });
+                    return;
+                }
+                if (navigator.share) {
+                    try {
+                        await navigator.share({ title: 'Product Requirements Chat', text: transcript });
+                        showToast('Share sheet opened', { variant: 'success' });
+                        return;
+                    } catch (error) {
+                        if (error?.name === 'AbortError') {
+                            showToast('Share cancelled', { variant: 'warning' });
+                            return;
+                        }
+                    }
+                }
+                try {
+                    await navigator.clipboard.writeText(transcript);
+                    showToast('Conversation copied to clipboard', { variant: 'success', description: 'Paste it into your destination app.' });
+                } catch (error) {
+                    showToast('Unable to copy conversation', { variant: 'danger', description: 'Select the text manually instead.' });
+                }
+            };
+
+            const moreButton = topbarActions ? topbarActions.querySelector('[data-topbar-action="more"]') : null;
+
+            if (topbarActions) {
+                topbarActions.addEventListener('click', (event) => {
+                    const button = event.target.closest('[data-topbar-action]');
+                    if (!button) {
+                        return;
+                    }
+                    const action = button.dataset.topbarAction;
+                    if (action === 'share') {
+                        handleShare();
+                    } else if (action === 'download') {
+                        downloadConversation();
+                    } else if (action === 'more') {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (topbarMenu && !topbarMenu.classList.contains('hidden')) {
+                            hideTopbarMenu();
+                        } else {
+                            showTopbarMenu(button);
+                        }
+                    }
+                });
+            }
+
+            window.addEventListener('resize', hideTopbarMenu);
+            window.addEventListener('scroll', hideTopbarMenu, true);
 
             const formatFileSize = (bytes) => {
                 const units = ['B', 'KB', 'MB', 'GB'];
@@ -721,6 +1287,40 @@
                 attachments.push(item);
                 renderAttachments();
             };
+
+            recentFileItems.forEach((item) => {
+                item.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    const name = item.dataset.fileName || item.querySelector('.text-sm')?.textContent?.trim() || 'Attachment';
+                    const detail = item.dataset.fileSize || item.dataset.fileUpdated || item.dataset.fileType || '';
+                    addAttachment({
+                        type: 'note',
+                        label: name,
+                        detail,
+                        note: `Please incorporate insights from ${name}.`,
+                    });
+                    showToast(`${name} added as a reference`, { variant: 'success' });
+                });
+            });
+
+            if (imagesContent) {
+                imagesContent.addEventListener('click', (event) => {
+                    const entry = event.target.closest('.cursor-pointer');
+                    if (!entry) {
+                        return;
+                    }
+                    event.preventDefault();
+                    const label = entry.querySelector('.text-xs.font-medium')?.textContent?.trim() || 'Design asset';
+                    const detail = entry.querySelector('.text-xs.text-gray-500')?.textContent?.trim() || '';
+                    addAttachment({
+                        type: 'note',
+                        label,
+                        detail,
+                        note: `Review the visuals from ${label}.`,
+                    });
+                    showToast(`${label} queued for review`, { variant: 'info' });
+                });
+            }
 
             const handleFiles = (files) => {
                 Array.from(files).forEach((file) => {
@@ -941,6 +1541,7 @@
 
                 const messageWrapper = document.createElement('div');
                 messageWrapper.className = 'flex justify-end mt-6';
+                messageWrapper.dataset.generated = 'true';
                 const innerWrapper = document.createElement('div');
                 innerWrapper.className = 'max-w-2xl';
                 const bubble = document.createElement('div');
@@ -1016,6 +1617,7 @@
                     hideTypingIndicator();
                     const aiWrapper = document.createElement('div');
                     aiWrapper.className = 'flex justify-start mt-6';
+                    aiWrapper.dataset.generated = 'true';
                     const aiInner = document.createElement('div');
                     aiInner.className = 'max-w-2xl';
                     const aiContentWrapper = document.createElement('div');
@@ -1025,6 +1627,9 @@
                     avatar.innerHTML = '<i class="fa-solid fa-robot text-white text-sm"></i>';
                     const aiBubble = document.createElement('div');
                     aiBubble.className = 'bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 chat-bubble text-sm text-gray-800 whitespace-pre-wrap';
+                    const aiBubbleId = `ai-message-${Date.now()}`;
+                    aiBubble.id = aiBubbleId;
+                    aiBubble.dataset.messageBubble = 'true';
                     const acknowledgement = trimmedText
                         ? `Got it! I\'ll log the following update: \n\n${trimmedText}`
                         : 'Thanks for the attachments. I\'ll review them and prepare the necessary updates.';
@@ -1040,10 +1645,29 @@
                     aiInner.appendChild(aiContentWrapper);
                     const aiMeta = document.createElement('div');
                     aiMeta.className = 'flex items-center space-x-2 mt-2 ml-11';
+                    aiMeta.dataset.messageMeta = aiBubbleId;
                     const aiTime = document.createElement('span');
                     aiTime.className = 'text-xs text-gray-500';
                     aiTime.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     aiMeta.appendChild(aiTime);
+                    const actionGroup = document.createElement('div');
+                    actionGroup.className = 'flex items-center space-x-1';
+
+                    const createActionButton = (action, iconClass) => {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'p-1 text-gray-400 hover:text-gray-600 rounded';
+                        button.dataset.messageAction = action;
+                        button.dataset.messageTarget = aiBubbleId;
+                        button.innerHTML = `<i class="${iconClass} text-xs"></i>`;
+                        bindMessageActionButton(button);
+                        return button;
+                    };
+
+                    actionGroup.appendChild(createActionButton('like', 'fa-regular fa-thumbs-up'));
+                    actionGroup.appendChild(createActionButton('dislike', 'fa-regular fa-thumbs-down'));
+                    actionGroup.appendChild(createActionButton('copy', 'fa-regular fa-copy'));
+                    aiMeta.appendChild(actionGroup);
                     aiInner.appendChild(aiMeta);
                     aiWrapper.appendChild(aiInner);
                     chatMessages.appendChild(aiWrapper);
@@ -1093,11 +1717,28 @@
             });
 
             document.addEventListener('click', (event) => {
-                if (!attachmentMenu.contains(event.target) && event.target !== attachmentButton) {
+                if (attachmentMenu && !attachmentMenu.contains(event.target) && event.target !== attachmentButton) {
                     closeAttachmentMenu();
                 }
-                if (!commandMenu.contains(event.target) && event.target !== chatInput) {
+                if (commandMenu && !commandMenu.contains(event.target) && event.target !== chatInput) {
                     closeCommandMenu();
+                }
+                if (researchMenu && !researchMenu.contains(event.target) && event.target !== researchButton) {
+                    hideMenu(researchMenu);
+                }
+                if (modeMenu && !modeMenu.contains(event.target) && event.target !== modeToggle) {
+                    hideMenu(modeMenu);
+                }
+                if (topbarMenu && !topbarMenu.contains(event.target) && event.target !== moreButton) {
+                    hideTopbarMenu();
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    hideMenu(researchMenu);
+                    hideMenu(modeMenu);
+                    hideTopbarMenu();
                 }
             });
 
