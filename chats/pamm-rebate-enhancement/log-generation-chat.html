@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Generation Chat · AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="../../scripts/sidebar.js" defer></script>
+    <script src="../../scripts/sidebar-favorites.js" defer></script>
+    <script src="../../scripts/sidebar-projects.js" defer></script>
+    <script src="../../scripts/sidebar-chats.js" defer></script>
+    <script src="../../scripts/sidebar-init.js" defer></script>
+    <script src="../../scripts/spa-navigation.js" defer></script>
+    <script src="../../scripts/topbar.js" defer></script>
+    <script src="../../scripts/chat-input.js" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap">
+    <style>
+        ::-webkit-scrollbar { display: none; }
+        body { font-family: 'Inter', sans-serif; }
+        .nav-item { transition: all 0.2s ease-in-out; }
+        .nav-item:hover { transform: translateX(2px); }
+        .message-bubble { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .output-card { transition: all 0.3s ease-in-out; }
+        .output-card:hover { box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); transform: translateY(-2px); }
+        .tab-active { border-bottom: 2px solid #0908c3; color: #0908c3; }
+        #sidebar { transition: width 0.3s ease, transform 0.3s ease; }
+        @media (min-width: 1024px) {
+            #sidebar { height: 100vh; }
+        }
+        #sidebar.collapsed { width: 80px; }
+        #sidebar.collapsed .sidebar-collapsible { display: none !important; }
+        #sidebar.collapsed .sidebar-icon-only {
+            justify-content: center !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        #sidebar.collapsed .sidebar-icon-only > :not(:first-child) {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+        #sidebar.collapsed .sidebar-icon-only .fa-solid,
+        #sidebar.collapsed .sidebar-icon-only .fa-regular { margin-right: 0; }
+        #sidebar.collapsed .control-btn i { margin-right: 0; }
+        #sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 40;
+            visibility: hidden;
+        }
+        #sidebar-backdrop.visible {
+            opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
+        }
+        body.sidebar-mobile-open { overflow: hidden; }
+        @media (max-width: 1024px) {
+            #sidebar {
+                position: fixed;
+                inset: 0 auto 0 0;
+                width: 280px;
+                transform: translateX(-100%);
+                box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+                z-index: 50;
+            }
+            #sidebar.mobile-open { transform: translateX(0); }
+            #sidebar.collapsed { width: 280px; }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        navy: '#0908c3',
+                        sky: '#87CEEB',
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+<body class="bg-gray-50" data-active-sidebar-link="chat-log-generation">
+
+<div id="notification-container" class="fixed top-4 right-4 z-50 space-y-3"></div>
+
+<div id="log-generation-interface" class="relative flex flex-col lg:flex-row min-h-screen lg:h-screen w-full bg-gray-50 text-gray-900 font-inter">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-[280px] bg-white border-r border-gray-200 flex flex-col shadow-sm transition-all duration-300 flex-shrink-0 min-h-0 lg:max-h-screen overflow-y-auto">
+        <!-- Header -->
+        <div id="sidebar-header" class="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+            <div class="flex items-center space-x-2 sidebar-icon-only">
+                <div class="w-9 h-9 bg-navy rounded-xl flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-robot text-white text-base"></i>
+                </div>
+                <h1 class="text-base font-semibold text-gray-800 sidebar-collapsible">AI Assistant</h1>
+            </div>
+            <button id="sidebar-toggle" class="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Collapse sidebar" aria-expanded="true">
+                <i class="fa-solid fa-chevron-left text-sm" data-icon-collapse></i>
+                <i class="fa-solid fa-chevron-right text-sm hidden" data-icon-expand></i>
+            </button>
+        </div>
+
+        <!-- New Chat Button -->
+        <div id="new-chat-section" class="px-3 py-2 space-y-2">
+            <button id="sidebar-new-chat" class="w-full flex items-center justify-center bg-navy text-white rounded-xl h-8 text-sm font-medium hover:bg-navy/90 shadow-md control-btn">
+                <i class="fa-solid fa-plus mr-2"></i> <span class="sidebar-collapsible">New Chat</span>
+            </button>
+        </div>
+
+        <!-- Dashboard Navigation -->
+        <div id="dashboard-nav" class="px-4 pb-2.5">
+            <div class="space-y-0.5">
+                <a href="../../dashboard.html" class="w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="dashboard">
+                    <i class="fa-solid fa-chart-line text-sm"></i>
+                    <span class="text-sm sidebar-collapsible">Dashboard</span>
+                </a>
+                <a href="../../terminology.html" class="w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="terminology">
+                    <i class="fa-solid fa-book text-sm"></i>
+                    <span class="text-sm sidebar-collapsible">Terminology</span>
+                </a>
+                <div class="space-y-1.5" data-favorites-section>
+                    <button type="button" class="w-full flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 text-left nav-item sidebar-icon-only" data-sidebar-link="favorites">
+                        <div class="flex items-center space-x-2.5 min-w-0 sidebar-icon-only">
+                            <i class="fa-solid fa-star text-sm"></i>
+                            <span class="text-sm sidebar-collapsible">Favorites</span>
+                        </div>
+                        <span class="hidden text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full sidebar-collapsible" data-favorites-count></span>
+                    </button>
+                    <div class="pl-9 pr-2 space-y-2 hidden sidebar-collapsible" data-favorites-view>
+                        <div class="text-xs font-semibold text-gray-500">Favorites</div>
+                        <div class="space-y-2 hidden" data-favorites-list></div>
+                        <div class="rounded-lg border border-dashed border-gray-300 p-3 text-xs text-gray-500" data-favorites-empty>
+                            <p class="font-medium text-gray-600">No favorites yet</p>
+                            <p class="mt-1">Use the favorite controls within each page to pin items here for quick access.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Section -->
+        <div id="project-section" class="px-4 pb-2.5" data-project-section>
+            <div class="flex items-center justify-between px-3 pb-1.5 sidebar-collapsible">
+                <span class="text-xs font-semibold tracking-wide text-gray-400 uppercase">Projects</span>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-projects-toggle aria-expanded="true">
+                    <span class="sr-only">Toggle project folders</span>
+                    <i class="fa-solid fa-chevron-down text-xs" data-projects-icon="expanded"></i>
+                    <i class="fa-solid fa-chevron-right text-xs hidden" data-projects-icon="collapsed"></i>
+                </button>
+            </div>
+            <div class="space-y-0.5" data-projects-content>
+                <a href="../../create-project.html" class="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-gray-50 text-gray-600 cursor-pointer nav-item" data-sidebar-link="new-project">
+                    <div class="flex items-center space-x-2.5 min-w-0 sidebar-icon-only">
+                        <i class="fa-solid fa-folder-plus text-sm"></i>
+                        <span class="text-sm sidebar-collapsible">New Project</span>
+                    </div>
+                </a>
+                <div data-project-folders class="space-y-0.5"></div>
+            </div>
+        </div>
+
+        <!-- Chat History -->
+        <nav id="chat-history" class="flex-1 overflow-y-auto px-4 space-y-1" data-chats-section>
+            <div class="flex items-center justify-between px-3 pb-1.5 sidebar-collapsible">
+                <span class="text-xs font-semibold tracking-wide text-gray-400 uppercase">Chats</span>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-chats-toggle aria-expanded="true">
+                    <span class="sr-only">Toggle chats</span>
+                    <i class="fa-solid fa-chevron-down text-xs" data-chats-icon="expanded"></i>
+                    <i class="fa-solid fa-chevron-right text-xs hidden" data-chats-icon="collapsed"></i>
+                </button>
+            </div>
+            <div class="space-y-0.5" data-chats-content>
+                <div data-chat-history class="space-y-0.5"></div>
+            </div>
+        </nav>
+
+        <!-- User Profile -->
+        <div id="user-profile" class="border-t border-gray-200 p-2">
+            <div class="flex items-center space-x-2 px-2.5 py-1 rounded-xl hover:bg-gray-50 cursor-pointer nav-item sidebar-icon-only">
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-8 h-8 rounded-full">
+                <div class="flex-1 min-w-0 sidebar-collapsible">
+                    <div class="flex items-center space-x-1.5">
+                        <p class="text-sm font-medium text-gray-800 truncate">John Smith</p>
+                        <span class="inline-flex items-center justify-center w-2 h-2 rounded-full bg-green-500" role="status" aria-label="Online"></span>
+                    </div>
+                    <p class="text-xs text-gray-500">Product Owner</p>
+                </div>
+                <i class="fa-solid fa-gear text-gray-400 hover:text-gray-600 sidebar-collapsible"></i>
+            </div>
+        </div>
+    </aside>
+
+    <div id="sidebar-backdrop" aria-hidden="true"></div>
+
+    <!-- Main Content -->
+    <main id="main-chat-panel" class="w-full lg:w-[40%] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col">
+        <!-- Chat Header -->
+        <header
+            id="chat-header"
+            data-topbar
+            data-topbar-title="Log Generation Chat"
+            data-topbar-subtitle="PAMM Rebate Enhancement"
+            data-topbar-icon="fa-regular fa-comment"
+            data-topbar-icon-color="text-navy"
+            data-topbar-icon-bg="bg-navy/10"
+            data-topbar-icon-size="text-base"
+            data-topbar-padding="px-6"
+            data-topbar-actions-class="flex items-center space-x-2">
+            <button
+                id="mobile-sidebar-toggle"
+                data-topbar-leading
+                class="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Open sidebar">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <div data-topbar-actions>
+                <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="More options">
+                    <i class="fa-solid fa-ellipsis-vertical text-sm"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Chat Messages -->
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-8 bg-white">
+            <div class="flex justify-end items-end space-x-3 message-bubble">
+                <div class="flex flex-col items-end">
+                    <div class="max-w-xl bg-navy text-white rounded-t-2xl rounded-bl-2xl px-5 py-3">
+                        <p class="text-sm leading-relaxed">/generate log with below update</p>
+                        <div class="mt-3 p-3 bg-navy/20 rounded-lg">
+                            <p class="text-xs text-white/80 mb-2">Task Update:</p>
+                            <p class="text-sm">PAMM Manager Landing Pages have been successfully deployed for both GM and MU entities. All testing completed and Phase 3 progress updated from 65% to 85%.</p>
+                        </div>
+                    </div>
+                    <span class="text-xs text-gray-400 mt-1.5">2:34 PM</span>
+                </div>
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-8 h-8 rounded-full flex-shrink-0">
+            </div>
+
+            <div class="flex justify-start items-start space-x-3 message-bubble">
+                <div class="w-8 h-8 bg-navy rounded-full flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid fa-robot text-white text-sm"></i>
+                </div>
+                <div class="max-w-xl">
+                    <div class="bg-gray-100 text-gray-800 rounded-t-2xl rounded-br-2xl px-5 py-3">
+                        <p class="text-sm leading-relaxed">Perfect! I'll generate a comprehensive log entry for the PAMM Manager Landing Pages deployment. I've created a detailed log with all the required fields based on your update.</p>
+                    </div>
+                    <div class="mt-2 p-4 bg-white rounded-lg border border-gray-200">
+                        <p class="text-xs text-gray-500 mb-2 font-medium">Generated output for you:</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium"><i class="fa-solid fa-clipboard-list mr-1.5"></i>Task Log Entry</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end items-end space-x-3 message-bubble">
+                <div class="flex flex-col items-end">
+                    <div class="max-w-xl bg-navy text-white rounded-t-2xl rounded-bl-2xl px-5 py-3">
+                        <p class="text-sm leading-relaxed">Great! Can you also update the technical requirements section with more deployment details?</p>
+                    </div>
+                    <span class="text-xs text-gray-400 mt-1.5">2:35 PM</span>
+                </div>
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-8 h-8 rounded-full flex-shrink-0">
+            </div>
+
+            <div class="flex justify-start items-start space-x-3 message-bubble">
+                <div class="w-8 h-8 bg-navy rounded-full flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid fa-robot text-white text-sm"></i>
+                </div>
+                <div class="max-w-xl">
+                    <div class="bg-gray-100 text-gray-800 rounded-t-2xl rounded-br-2xl px-5 py-3">
+                        <p class="text-sm leading-relaxed">Absolutely! I've updated the log entry with enhanced technical requirements including deployment architecture, security configurations, and performance metrics. The log now includes comprehensive deployment details.</p>
+                    </div>
+                    <div class="mt-2 p-4 bg-white rounded-lg border border-gray-200">
+                        <p class="text-xs text-gray-500 mb-2 font-medium">Updated output:</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium"><i class="fa-solid fa-edit mr-1.5"></i>Updated Log v2.1</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Input -->
+        <div id="chat-input" class="border-t border-gray-200 p-6 bg-white" data-chat-input-root data-chat-input-page-key="chat-log-generation">
+            <div class="relative w-full">
+                <div class="flex items-center w-full bg-white border border-gray-200 rounded-full shadow-sm pr-2 py-2">
+                    <i class="fa-solid fa-plus text-gray-500 pl-5 pr-3"></i>
+                    <input type="text" id="chat-input-field" placeholder="New chat in PAMM Rebate Enhancement" class="flex-grow bg-transparent text-sm text-gray-800 placeholder-gray-500 focus:outline-none" data-chat-input-field>
+                    <div class="flex items-center space-x-2 pr-2">
+                        <button class="p-2 text-gray-500 hover:text-navy rounded-full hover:bg-gray-100" aria-label="Voice input">
+                            <i class="fa-solid fa-microphone text-lg"></i>
+                        </button>
+                        <button class="w-9 h-9 flex items-center justify-center bg-gray-200 text-gray-500 rounded-full hover:bg-gray-300 transition-all" aria-label="Send message">
+                            <i class="fa-solid fa-arrow-up text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Slash Commands Menu -->
+                <div id="slash-commands-menu" class="absolute bottom-full left-0 w-full mb-2 bg-white border border-gray-200 rounded-xl shadow-lg hidden" data-chat-input-menu>
+                    <div class="p-3 border-b border-gray-100">
+                        <h4 class="text-sm font-medium text-gray-700">Quick Commands</h4>
+                        <p class="text-xs text-gray-500">Type / to see all commands</p>
+                    </div>
+                    <div class="max-h-64 overflow-y-auto">
+                        <div class="command-item flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50" data-command="/update" data-chat-command>
+                            <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fa-solid fa-edit text-blue-600 text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-800">/update</div>
+                                <div class="text-xs text-gray-500">Update a section in BRD/log</div>
+                            </div>
+                            <div class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Enter</div>
+                        </div>
+
+                        <div class="command-item flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50" data-command="/remove" data-chat-command>
+                            <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fa-solid fa-minus text-red-600 text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-800">/remove</div>
+                                <div class="text-xs text-gray-500">Remove a specific field or requirement</div>
+                            </div>
+                            <div class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Enter</div>
+                        </div>
+
+                        <div class="command-item flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50" data-command="/delete" data-chat-command>
+                            <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fa-solid fa-trash text-orange-600 text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-800">/delete</div>
+                                <div class="text-xs text-gray-500">Delete entire version or entry</div>
+                            </div>
+                            <div class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Enter</div>
+                        </div>
+
+                        <div class="command-item flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50" data-command="/cancel" data-chat-command>
+                            <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fa-solid fa-undo text-yellow-600 text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-800">/cancel</div>
+                                <div class="text-xs text-gray-500">Cancel or rollback last action</div>
+                            </div>
+                            <div class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Enter</div>
+                        </div>
+
+                        <div class="command-item flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50" data-command="/add" data-chat-command>
+                            <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fa-solid fa-plus text-green-600 text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-800">/add</div>
+                                <div class="text-xs text-gray-500">Add new field or section</div>
+                            </div>
+                            <div class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Enter</div>
+                        </div>
+
+                        <div class="command-item flex items-center p-3 hover:bg-gray-50 cursor-pointer" data-command="/generate" data-chat-command>
+                            <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fa-solid fa-magic-wand-sparkles text-purple-600 text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-800">/generate</div>
+                                <div class="text-xs text-gray-500">Create new version based on edits</div>
+                            </div>
+                            <div class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Enter</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Output Panel -->
+    <aside id="output-panel" class="w-full lg:w-[40%] bg-gray-50 flex flex-col">
+        <header id="output-header" class="h-16 border-b border-gray-200 px-6 bg-white flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-800">Generated Outputs</h3>
+            <div class="flex items-center space-x-2">
+                <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Filter outputs">
+                    <i class="fa-solid fa-filter text-sm"></i>
+                </button>
+                <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Download outputs">
+                    <i class="fa-solid fa-download text-sm"></i>
+                </button>
+            </div>
+        </header>
+
+        <div id="output-tabs" class="bg-white border-b border-gray-200 px-6">
+            <div class="flex space-x-6">
+                <button class="py-3 text-sm font-medium text-navy tab-active" type="button">All</button>
+                <button class="py-3 text-sm font-medium text-gray-500 hover:text-gray-700" type="button">Logs</button>
+                <button class="py-3 text-sm font-medium text-gray-500 hover:text-gray-700" type="button">Docs</button>
+                <button class="py-3 text-sm font-medium text-gray-500 hover:text-gray-700" type="button">Tables</button>
+                <button class="py-3 text-sm font-medium text-gray-500 hover:text-gray-700" type="button">History</button>
+            </div>
+        </div>
+
+        <div id="output-cards" class="flex-1 overflow-y-auto p-6 space-y-4">
+            <div class="bg-white rounded-xl border border-gray-200 p-6 output-card">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-clipboard-list text-green-600 text-lg"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-semibold text-gray-800">Task Log Entry</h4>
+                            <p class="text-sm text-gray-500">PAMM Manager Landing Pages Deployment</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="relative">
+                            <button id="version-dropdown" class="flex items-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700" type="button" aria-expanded="false">
+                                <span>v2.1</span>
+                                <i class="fa-solid fa-chevron-down text-xs"></i>
+                            </button>
+                            <div id="version-menu" class="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg w-48 hidden z-10">
+                                <div class="p-2">
+                                    <div class="flex items-center justify-between p-2 bg-green-50 rounded border border-green-200 mb-1">
+                                        <div>
+                                            <p class="text-sm font-medium text-green-800">Version 2.1</p>
+                                            <p class="text-xs text-green-600">2 minutes ago</p>
+                                        </div>
+                                        <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Current</span>
+                                    </div>
+                                    <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-800">Version 2.0</p>
+                                            <p class="text-xs text-gray-600">Yesterday</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-800">Version 1.5</p>
+                                            <p class="text-xs text-gray-600">2 days ago</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-800">Version 1.0</p>
+                                            <p class="text-xs text-gray-600">1 week ago</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Pin output">
+                            <i class="fa-solid fa-thumbtack text-sm"></i>
+                        </button>
+                        <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="Download output">
+                            <i class="fa-solid fa-download text-sm"></i>
+                        </button>
+                        <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50" aria-label="More options">
+                            <i class="fa-solid fa-ellipsis-vertical text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-4 mb-6">
+                    <div class="border-l-4 border-red-500 bg-red-50 p-4 rounded-r-lg">
+                        <h5 class="text-sm font-semibold text-red-800 mb-3">Critical Fields</h5>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <span class="text-red-700 font-medium">Task Title:</span>
+                                <p class="text-red-800 mt-1">PAMM Manager Landing Pages Deployed for GM and MU Entities</p>
+                            </div>
+                            <div>
+                                <span class="text-red-700 font-medium">Status:</span>
+                                <p class="text-red-800 mt-1">Completed</p>
+                            </div>
+                            <div>
+                                <span class="text-red-700 font-medium">Priority:</span>
+                                <p class="text-red-800 mt-1">High</p>
+                            </div>
+                            <div>
+                                <span class="text-red-700 font-medium">Owner:</span>
+                                <p class="text-red-800 mt-1">John Smith</p>
+                            </div>
+                            <div>
+                                <span class="text-red-700 font-medium">Progress:</span>
+                                <p class="text-red-800 mt-1">Phase 3: 65% → 85%</p>
+                            </div>
+                            <div>
+                                <span class="text-red-700 font-medium">Due Date:</span>
+                                <p class="text-red-800 mt-1">2024-12-30</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 rounded-r-lg">
+                        <h5 class="text-sm font-semibold text-yellow-800 mb-3">Conditional Fields</h5>
+                        <div class="space-y-2 text-sm">
+                            <div>
+                                <span class="text-yellow-700 font-medium">Dependencies:</span>
+                                <p class="text-yellow-800 mt-1">SSL Certificate Setup, Entity Configuration</p>
+                            </div>
+                            <div>
+                                <span class="text-yellow-700 font-medium">Testing Environment:</span>
+                                <p class="text-yellow-800 mt-1">Staging, UAT, Production</p>
+                            </div>
+                            <div>
+                                <span class="text-yellow-700 font-medium">Rollback Plan:</span>
+                                <p class="text-yellow-800 mt-1">Documented and tested</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-l-4 border-blue-500 bg-blue-50 p-4 rounded-r-lg">
+                        <h5 class="text-sm font-semibold text-blue-800 mb-3">Strategic Fields</h5>
+                        <div class="space-y-2 text-sm">
+                            <div>
+                                <span class="text-blue-700 font-medium">Business Impact:</span>
+                                <p class="text-blue-800 mt-1">Enhanced user onboarding experience for PAMM managers</p>
+                            </div>
+                            <div>
+                                <span class="text-blue-700 font-medium">Success Metrics:</span>
+                                <p class="text-blue-800 mt-1">Page load time &lt; 2s, Conversion rate &gt; 15%</p>
+                            </div>
+                            <div>
+                                <span class="text-blue-700 font-medium">Stakeholders:</span>
+                                <p class="text-blue-800 mt-1">Product Team, Engineering, QA, Marketing</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-l-4 border-green-500 bg-green-50 p-4 rounded-r-lg">
+                        <h5 class="text-sm font-semibold text-green-800 mb-3">Work Completed</h5>
+                        <div class="text-sm text-green-800">
+                            <ul class="space-y-1 list-disc list-inside">
+                                <li>Deployed GM entity landing page with responsive design</li>
+                                <li>Deployed MU entity landing page with localization</li>
+                                <li>Configured thank you pages for both entities</li>
+                                <li>Implemented automatic redirect functionality</li>
+                                <li>Set up analytics tracking and monitoring</li>
+                                <li>Completed cross-browser compatibility testing</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="border-l-4 border-purple-500 bg-purple-50 p-4 rounded-r-lg">
+                        <h5 class="text-sm font-semibold text-purple-800 mb-3">Risk &amp; Governance</h5>
+                        <div class="space-y-2 text-sm">
+                            <div>
+                                <span class="text-purple-700 font-medium">Risk Assessment:</span>
+                                <p class="text-purple-800 mt-1">Low - All dependencies resolved</p>
+                            </div>
+                            <div>
+                                <span class="text-purple-700 font-medium">Compliance:</span>
+                                <p class="text-purple-800 mt-1">GDPR compliant, Security review passed</p>
+                            </div>
+                            <div>
+                                <span class="text-purple-700 font-medium">Change Approval:</span>
+                                <p class="text-purple-800 mt-1">CAB-2024-1205 approved</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <div class="flex items-center space-x-2">
+                        <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">Task Log Entry</span>
+                        <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">v2.1</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50" type="button">
+                            Export Log
+                        </button>
+                        <button class="px-4 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:bg-navy/90" type="button">
+                            Edit Log
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<script>
+(function () {
+    const PAGE_KEY = 'chat-log-generation';
+
+    let initialized = false;
+    let cleanup = null;
+
+    const init = () => {
+        if (initialized) {
+            return;
+        }
+
+        const root = document;
+        const inputField = root.getElementById('chat-input-field');
+        const slashMenu = root.getElementById('slash-commands-menu');
+        const versionDropdown = root.getElementById('version-dropdown');
+        const versionMenu = root.getElementById('version-menu');
+        const tabs = Array.from(root.querySelectorAll('#output-tabs button'));
+        const commandItems = Array.from(root.querySelectorAll('.command-item'));
+
+        let selectedIndex = -1;
+
+        const filterCommands = (value) => {
+            const normalized = value.trim().toLowerCase();
+            commandItems.forEach((item) => {
+                const command = item.dataset.command || '';
+                if (!normalized || command.toLowerCase().includes(normalized)) {
+                    item.classList.remove('hidden');
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+        };
+
+        const updateSelection = (items) => {
+            items.forEach((item, index) => {
+                if (index === selectedIndex) {
+                    item.classList.add('bg-navy/10');
+                } else {
+                    item.classList.remove('bg-navy/10');
+                }
+            });
+        };
+
+        const handleInput = (event) => {
+            const value = event.target.value || '';
+            if (value === '/' || value.startsWith('/')) {
+                slashMenu?.classList.remove('hidden');
+                filterCommands(value.replace(/\s+/g, ''));
+                selectedIndex = -1;
+            } else {
+                slashMenu?.classList.add('hidden');
+            }
+        };
+
+        const handleKeydown = (event) => {
+            if (slashMenu?.classList.contains('hidden')) {
+                return;
+            }
+
+            const visibleItems = commandItems.filter((item) => !item.classList.contains('hidden'));
+            if (!visibleItems.length) {
+                return;
+            }
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                selectedIndex = Math.min(selectedIndex + 1, visibleItems.length - 1);
+                updateSelection(visibleItems);
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                selectedIndex = Math.max(selectedIndex - 1, 0);
+                updateSelection(visibleItems);
+            } else if (event.key === 'Enter' && selectedIndex >= 0) {
+                event.preventDefault();
+                const command = visibleItems[selectedIndex].dataset.command || '';
+                inputField.value = `${command} `;
+                slashMenu.classList.add('hidden');
+                inputField.focus();
+            } else if (event.key === 'Escape') {
+                slashMenu.classList.add('hidden');
+            }
+        };
+
+        const handleItemClick = (event) => {
+            const command = event.currentTarget?.dataset?.command || '';
+            inputField.value = `${command} `;
+            slashMenu?.classList.add('hidden');
+            inputField.focus();
+        };
+
+        const handleDocumentClick = (event) => {
+            if (!event.target.closest('#chat-input')) {
+                slashMenu?.classList.add('hidden');
+            }
+
+            if (!event.target.closest('#version-dropdown') && !event.target.closest('#version-menu')) {
+                if (versionMenu) {
+                    versionMenu.classList.add('hidden');
+                }
+                if (versionDropdown) {
+                    versionDropdown.setAttribute('aria-expanded', 'false');
+                }
+            }
+        };
+
+        const handleTabClick = (event) => {
+            tabs.forEach((tab) => {
+                tab.classList.remove('tab-active', 'text-navy');
+                tab.classList.add('text-gray-500');
+            });
+            const target = event.currentTarget;
+            target.classList.add('tab-active', 'text-navy');
+            target.classList.remove('text-gray-500');
+        };
+
+        const handleVersionToggle = (event) => {
+            event.preventDefault();
+            const isHidden = versionMenu?.classList.contains('hidden');
+            if (versionMenu) {
+                versionMenu.classList.toggle('hidden');
+            }
+            if (versionDropdown) {
+                versionDropdown.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+            }
+        };
+
+        inputField?.addEventListener('input', handleInput);
+        inputField?.addEventListener('keydown', handleKeydown);
+        commandItems.forEach((item) => {
+            item.addEventListener('click', handleItemClick);
+        });
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', handleTabClick);
+        });
+        versionDropdown?.addEventListener('click', handleVersionToggle);
+        document.addEventListener('click', handleDocumentClick);
+
+        cleanup = () => {
+            inputField?.removeEventListener('input', handleInput);
+            inputField?.removeEventListener('keydown', handleKeydown);
+            commandItems.forEach((item) => {
+                item.removeEventListener('click', handleItemClick);
+            });
+            tabs.forEach((tab) => {
+                tab.removeEventListener('click', handleTabClick);
+            });
+            versionDropdown?.removeEventListener('click', handleVersionToggle);
+            document.removeEventListener('click', handleDocumentClick);
+            slashMenu?.classList.add('hidden');
+            if (versionMenu) {
+                versionMenu.classList.add('hidden');
+            }
+            if (versionDropdown) {
+                versionDropdown.setAttribute('aria-expanded', 'false');
+            }
+            selectedIndex = -1;
+        };
+
+        initialized = true;
+    };
+
+    const resetAndInit = () => {
+        if (typeof cleanup === 'function') {
+            cleanup();
+            cleanup = null;
+        }
+        initialized = false;
+        init();
+    };
+
+    const handleInitEvent = (event) => {
+        const targetPage = event?.detail?.page;
+        if (targetPage && targetPage !== PAGE_KEY) {
+            return;
+        }
+        resetAndInit();
+    };
+
+    const attach = () => {
+        document.addEventListener('ai-assistant:init-page', handleInitEvent);
+    };
+
+    const detach = () => {
+        document.removeEventListener('ai-assistant:init-page', handleInitEvent);
+        if (typeof cleanup === 'function') {
+            cleanup();
+            cleanup = null;
+        }
+        initialized = false;
+    };
+
+    window.AIAssistant = window.AIAssistant || {};
+    window.AIAssistant.pages = window.AIAssistant.pages || {};
+    const previous = window.AIAssistant.pages[PAGE_KEY];
+    if (previous && typeof previous.teardown === 'function') {
+        previous.teardown();
+    }
+
+    window.AIAssistant.pages[PAGE_KEY] = {
+        init: resetAndInit,
+        teardown: detach,
+    };
+
+    attach();
+
+    const shouldAutoInit = !window.AIAssistant?.navigation?.isNavigating;
+    if (shouldAutoInit) {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init, { once: true });
+        } else {
+            init();
+        }
+    }
+})();
+</script>
+
+</body>
+</html>
