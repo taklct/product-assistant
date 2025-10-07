@@ -403,44 +403,46 @@
 
     const overlay = document.createElement('div');
     overlay.id = NEW_CHAT_OVERLAY_ID;
-    overlay.className = 'flex-1 flex flex-col bg-white hidden';
+    overlay.className = 'flex-1 flex flex-col bg-white hidden min-h-0';
     overlay.setAttribute('role', 'region');
     overlay.setAttribute('aria-hidden', 'true');
     overlay.setAttribute('aria-labelledby', `${NEW_CHAT_OVERLAY_ID}-heading`);
     overlay.setAttribute('aria-describedby', `${NEW_CHAT_OVERLAY_ID}-description`);
 
     overlay.innerHTML = `
-      <div class="flex flex-col lg:flex-row flex-1 min-h-0">
-          <section class="flex flex-col flex-1 min-h-0 bg-white" aria-labelledby="${NEW_CHAT_OVERLAY_ID}-heading">
-              <header id="new-chat-header" class="flex items-center justify-between h-16 border-b border-gray-200 px-6 bg-white flex-shrink-0">
-                  <div class="flex items-center space-x-4">
-                      <h2 id="${NEW_CHAT_OVERLAY_ID}-heading" class="text-lg font-semibold text-gray-800">New Chat</h2>
-                  </div>
-                  <div class="flex items-center space-x-3">
-                      <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all" type="button">
-                          <i class="fa-solid fa-share-nodes"></i>
-                      </button>
-                      <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all" type="button">
-                          <i class="fa-solid fa-download"></i>
-                      </button>
-                      <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all" type="button">
-                          <i class="fa-solid fa-ellipsis-vertical"></i>
-                      </button>
-                      <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all" type="button" data-new-chat-close>
-                          <span class="sr-only">Close new chat</span>
-                          <i class="fa-solid fa-xmark"></i>
-                      </button>
-                  </div>
-              </header>
+      <div class="flex flex-col lg:flex-row flex-1 min-h-0 lg:max-h-screen">
+          <section class="flex flex-col flex-1 min-h-0 bg-white overflow-hidden" aria-labelledby="${NEW_CHAT_OVERLAY_ID}-heading">
+              <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
+                  <header id="new-chat-header" class="flex items-center justify-between h-16 border-b border-gray-200 px-6 bg-white flex-shrink-0 sticky top-0 z-20">
+                      <div class="flex items-center space-x-4">
+                          <h2 id="${NEW_CHAT_OVERLAY_ID}-heading" class="text-lg font-semibold text-gray-800">New Chat</h2>
+                      </div>
+                      <div class="flex items-center space-x-3">
+                          <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all" type="button">
+                              <i class="fa-solid fa-share-nodes"></i>
+                          </button>
+                          <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all" type="button">
+                              <i class="fa-solid fa-download"></i>
+                          </button>
+                          <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all" type="button">
+                              <i class="fa-solid fa-ellipsis-vertical"></i>
+                          </button>
+                          <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all" type="button" data-new-chat-close>
+                              <span class="sr-only">Close new chat</span>
+                              <i class="fa-solid fa-xmark"></i>
+                          </button>
+                      </div>
+                  </header>
 
-              <div id="new-chat-messages" class="flex-1 overflow-y-auto p-6">
-                  <div data-new-chat-thread class="space-y-6">
-                      <div id="new-chat-welcome" data-new-chat-welcome class="text-center py-16">
-                          <div class="w-20 h-20 bg-navy rounded-full flex items-center justify-center mx-auto mb-6">
-                              <i class="fa-solid fa-robot text-white text-3xl"></i>
+                  <div id="new-chat-messages" class="flex-1 overflow-y-auto p-6">
+                      <div data-new-chat-thread class="space-y-6">
+                          <div id="new-chat-welcome" data-new-chat-welcome class="text-center py-16">
+                              <div class="w-20 h-20 bg-navy rounded-full flex items-center justify-center mx-auto mb-6">
+                                  <i class="fa-solid fa-robot text-white text-3xl"></i>
+                              </div>
+                              <h3 id="${NEW_CHAT_OVERLAY_ID}-description" class="text-2xl font-semibold text-gray-800 mb-3">Start a New Conversation</h3>
+                              <p class="text-gray-600 max-w-lg mx-auto text-lg">I'm ready to help you with any questions or tasks. What would you like to work on today?</p>
                           </div>
-                          <h3 id="${NEW_CHAT_OVERLAY_ID}-description" class="text-2xl font-semibold text-gray-800 mb-3">Start a New Conversation</h3>
-                          <p class="text-gray-600 max-w-lg mx-auto text-lg">I'm ready to help you with any questions or tasks. What would you like to work on today?</p>
                       </div>
                   </div>
               </div>
@@ -463,68 +465,70 @@
               </div>
           </section>
 
-          <aside class="w-full lg:w-[320px] lg:max-w-[320px] border-t lg:border-t-0 lg:border-l border-gray-200 bg-gray-50 flex flex-col min-h-0" aria-label="Quick start templates">
-              <div class="px-6 py-5 border-b border-gray-200 bg-white flex-shrink-0">
-                  <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Quick Start</h3>
-                  <p class="text-xs text-gray-500 mt-1">Choose a template to prefill your message.</p>
-              </div>
-              <div class="flex-1 overflow-y-auto px-6 py-6 space-y-6" data-new-chat-quickstart>
-                  <section class="space-y-3">
-                      <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Popular Prompts</h4>
-                      <div class="space-y-3">
-                          <button type="button" class="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-navy hover:shadow-sm transition-all" data-new-chat-template="Brainstorm three product positioning ideas for our upcoming launch.">
-                              <div class="flex items-start space-x-3">
-                                  <div class="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
-                                      <i class="fa-solid fa-lightbulb"></i>
+          <aside class="w-full lg:w-[320px] lg:max-w-[320px] border-t lg:border-t-0 lg:border-l border-gray-200 bg-gray-50 flex flex-col min-h-0 overflow-hidden" aria-label="Quick start templates">
+              <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
+                  <div class="px-6 py-5 border-b border-gray-200 bg-white flex-shrink-0 sticky top-0 z-20">
+                      <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Quick Start</h3>
+                      <p class="text-xs text-gray-500 mt-1">Choose a template to prefill your message.</p>
+                  </div>
+                  <div class="flex-1 overflow-y-auto px-6 py-6 space-y-6" data-new-chat-quickstart>
+                      <section class="space-y-3">
+                          <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Popular Prompts</h4>
+                          <div class="space-y-3">
+                              <button type="button" class="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-navy hover:shadow-sm transition-all" data-new-chat-template="Brainstorm three product positioning ideas for our upcoming launch.">
+                                  <div class="flex items-start space-x-3">
+                                      <div class="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                                          <i class="fa-solid fa-lightbulb"></i>
+                                      </div>
+                                      <div>
+                                          <p class="text-sm font-semibold text-gray-800">Generate Ideas</p>
+                                          <p class="text-xs text-gray-500">Brainstorm creative solutions and innovative concepts.</p>
+                                      </div>
                                   </div>
-                                  <div>
-                                      <p class="text-sm font-semibold text-gray-800">Generate Ideas</p>
-                                      <p class="text-xs text-gray-500">Brainstorm creative solutions and innovative concepts.</p>
+                              </button>
+                              <button type="button" class="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-navy hover:shadow-sm transition-all" data-new-chat-template="Review the attached specification and list potential implementation risks.">
+                                  <div class="flex items-start space-x-3">
+                                      <div class="w-9 h-9 rounded-lg bg-green-100 flex items-center justify-center text-green-600">
+                                          <i class="fa-solid fa-code"></i>
+                                      </div>
+                                      <div>
+                                          <p class="text-sm font-semibold text-gray-800">Code Review</p>
+                                          <p class="text-xs text-gray-500">Analyze and improve your code quality.</p>
+                                      </div>
                                   </div>
-                              </div>
-                          </button>
-                          <button type="button" class="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-navy hover:shadow-sm transition-all" data-new-chat-template="Review the attached specification and list potential implementation risks.">
-                              <div class="flex items-start space-x-3">
-                                  <div class="w-9 h-9 rounded-lg bg-green-100 flex items-center justify-center text-green-600">
-                                      <i class="fa-solid fa-code"></i>
+                              </button>
+                              <button type="button" class="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-navy hover:shadow-sm transition-all" data-new-chat-template="Draft a one-page executive summary for the PAMM rebate enhancement project.">
+                                  <div class="flex items-start space-x-3">
+                                      <div class="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600">
+                                          <i class="fa-solid fa-file-lines"></i>
+                                      </div>
+                                      <div>
+                                          <p class="text-sm font-semibold text-gray-800">Write Documentation</p>
+                                          <p class="text-xs text-gray-500">Create clear and comprehensive documentation.</p>
+                                      </div>
                                   </div>
-                                  <div>
-                                      <p class="text-sm font-semibold text-gray-800">Code Review</p>
-                                      <p class="text-xs text-gray-500">Analyze and improve your code quality.</p>
-                                  </div>
-                              </div>
-                          </button>
-                          <button type="button" class="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-navy hover:shadow-sm transition-all" data-new-chat-template="Draft a one-page executive summary for the PAMM rebate enhancement project.">
-                              <div class="flex items-start space-x-3">
-                                  <div class="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600">
-                                      <i class="fa-solid fa-file-lines"></i>
-                                  </div>
-                                  <div>
-                                      <p class="text-sm font-semibold text-gray-800">Write Documentation</p>
-                                      <p class="text-xs text-gray-500">Create clear and comprehensive documentation.</p>
-                                  </div>
-                              </div>
-                          </button>
-                      </div>
-                  </section>
+                              </button>
+                          </div>
+                      </section>
 
-                  <section class="space-y-3">
-                      <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Next Steps</h4>
-                      <div class="bg-white border border-gray-200 rounded-xl p-4 space-y-3 text-sm text-gray-600">
-                          <p>• Summarize the latest project decisions for stakeholders.</p>
-                          <p>• Identify any data gaps needed for the next release.</p>
-                          <p>• Draft follow-up questions for the implementation team.</p>
-                      </div>
-                  </section>
+                      <section class="space-y-3">
+                          <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Next Steps</h4>
+                          <div class="bg-white border border-gray-200 rounded-xl p-4 space-y-3 text-sm text-gray-600">
+                              <p>• Summarize the latest project decisions for stakeholders.</p>
+                              <p>• Identify any data gaps needed for the next release.</p>
+                              <p>• Draft follow-up questions for the implementation team.</p>
+                          </div>
+                      </section>
 
-                  <section class="space-y-3">
-                      <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tips</h4>
-                      <div class="bg-white border border-gray-200 rounded-xl p-4 text-sm text-gray-600 space-y-3">
-                          <p>Be as specific as possible about your goal so I can tailor the response.</p>
-                          <p>Mention any deadlines or constraints that impact the solution.</p>
-                          <p>Attach relevant files or links when you need detailed analysis.</p>
-                      </div>
-                  </section>
+                      <section class="space-y-3">
+                          <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tips</h4>
+                          <div class="bg-white border border-gray-200 rounded-xl p-4 text-sm text-gray-600 space-y-3">
+                              <p>Be as specific as possible about your goal so I can tailor the response.</p>
+                              <p>Mention any deadlines or constraints that impact the solution.</p>
+                              <p>Attach relevant files or links when you need detailed analysis.</p>
+                          </div>
+                      </section>
+                  </div>
               </div>
           </aside>
       </div>
